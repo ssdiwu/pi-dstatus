@@ -130,7 +130,7 @@ export function renderQuotaWindow(quota: QuotaWindow): QuotaDisplay | undefined 
     barPercent = remainingPercent;
     const prefix = quota.label ? `${sanitizeText(quota.label)} ` : "";
     const bar = formatQuotaBar(barPercent);
-    text = `${prefix}${Math.round(remainingPercent)}% left ${bar}${quota.resetLabel ? ` · ${sanitizeText(quota.resetLabel)}` : ""}`;
+    text = `${prefix}${Math.round(remainingPercent)}% ${bar}${quota.resetLabel ? ` · ${sanitizeText(quota.resetLabel)}` : ""}`;
     compactText = `${prefix}${Math.round(remainingPercent)}% ${bar}`;
   } else {
     return undefined;
@@ -203,11 +203,13 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
     case "activity":
       return state.activity?.active ? [{ id, text: ` ${sanitizeText(state.activity.text)}`, compactText: " ···", priority: 6, bg }] : [];
     case "statuses":
-      return Array.from(state.statuses.entries()).map(([key, text], index) => {
+      return Array.from(state.statuses.entries())
+        .filter(([key]) => component.key === undefined || key === component.key)
+        .map(([key, text], index) => {
         const safeKey = sanitizeText(key);
         const safeText = sanitizeText(text);
         return { id: `${id}:${safeKey}`, text: ` ${safeText}`, compactText: ` ${safeKey}`, priority: 10 + index, bg };
-      }).filter((segment) => segment.text.trim() !== "");
+        }).filter((segment) => segment.text.trim() !== "");
   }
 }
 

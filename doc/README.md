@@ -12,4 +12,4 @@ Footer 只消费 Pi 公开的 `ExtensionContext`、Git 和 `footerData.getExtens
 
 ## 实现路径
 
-默认配置是一条包含全部组件的逻辑行；`/dstatus` 修改 `settings-model` 草稿，设置预览和实际 Footer 都调用 `renderer.renderStatusLines()`。`context` 与每个 `quota` 是独立组件：`context` 使用统一的 `QuotaWindow`（配额窗口）模型渲染上下文百分比进度条与 `XXK of XXXK`，每个 `quota` 通过 `StatusComponent.key` 绑定一个 provider / 模型 ID，并通过 `pi-dusage/updated` 消费对应额度。provider / 模型列表来自事件快照动态发现；设置面板选中 quota 后用 `p` 绑定模型，`q` 切换窗口范围、`t` 切换 reset 时间。保存通过临时文件加 `rename` 原子替换，取消不写盘。
+默认配置是一条包含全部组件的逻辑行；`/dstatus` 修改 `settings-model` 草稿，设置预览和实际 Footer 都调用 `renderer.renderStatusLines()`。`context`、每个 `quota` 与按 key 绑定的 `statuses` 是独立组件：`context` 使用统一的 `QuotaWindow`（配额窗口）模型渲染上下文百分比进度条与 `XXK of XXXK`，每个 `quota` 通过 `StatusComponent.key` 绑定一个 provider / 模型 ID，并通过 `pi-dusage/updated` 消费对应额度；`statuses` 有 key 时只消费对应的 `getExtensionStatuses()` 条目，无 key 时显示全部。provider / 模型与 status 列表来自运行时动态发现；设置面板选中动态组件后用 `p` 绑定，`q` 切换窗口范围、`t` 切换 reset 时间。保存通过临时文件加 `rename` 原子替换，取消不写盘。

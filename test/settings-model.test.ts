@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings, setSelectedQuotaProvider, toggleQuotaReset } from "../src/settings-model.js";
+import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings, setSelectedQuotaProvider, setSelectedStatusKey, toggleQuotaReset } from "../src/settings-model.js";
 
 describe("settings model", () => {
   it("edits, reorders, and removes lines without mutating saved config", () => {
@@ -39,6 +39,13 @@ describe("settings model", () => {
     state = setSelectedQuotaProvider(state, "zai-coding-cn");
     expect(state.draft.quota).toEqual({ window: "all", showReset: true });
     expect(state.draft.lines[0]!.components[5]).toEqual({ id: "quota", key: "zai-coding-cn" });
+  });
+
+  it("binds a statuses component to one status key", () => {
+    let state = createSettingsState(defaultConfig());
+    state = { ...state, draft: { ...state.draft, lines: [{ id: "only", components: [{ id: "statuses" }] }] } };
+    state = setSelectedStatusKey(state, "dteam");
+    expect(state.draft.lines[0]!.components).toEqual([{ id: "statuses", key: "dteam" }]);
   });
 
   it("cycles global and line overflow", () => {

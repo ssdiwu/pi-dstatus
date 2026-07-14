@@ -49,7 +49,7 @@ export function addComponent(state: SettingsState, id?: ComponentId): SettingsSt
   const line = selectedLine(state);
   if (!line) return state;
   const existing = new Set(line.components.map((component) => component.id));
-  const next = id ?? COMPONENT_IDS.find((candidate) => candidate === "quota" || !existing.has(candidate)) ?? "statuses";
+  const next = id ?? COMPONENT_IDS.find((candidate) => candidate === "quota" || candidate === "statuses" || !existing.has(candidate)) ?? "statuses";
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine
     ? { ...candidate, components: [...candidate.components, { id: next }] }
     : candidate);
@@ -68,7 +68,7 @@ export function replaceSelectedComponent(state: SettingsState, id: ComponentId):
   const line = selectedLine(state);
   if (!line) return state;
   const components = line.components.map((component, index) => index === state.selectedComponent
-    ? id === "quota" ? { id: "quota" as const } : { id }
+    ? id === "quota" ? { id: "quota" as const } : id === "statuses" ? { id: "statuses" as const } : { id }
     : component);
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
   return { ...state, draft: { ...state.draft, lines } };
@@ -117,6 +117,14 @@ export function setSelectedQuotaProvider(state: SettingsState, providerId: strin
   const line = selectedLine(state);
   if (!line || line.components[state.selectedComponent]?.id !== "quota") return state;
   const components = line.components.map((component, index) => index === state.selectedComponent ? { id: "quota" as const, key: providerId } : component);
+  const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
+  return { ...state, draft: { ...state.draft, lines } };
+}
+
+export function setSelectedStatusKey(state: SettingsState, key: string): SettingsState {
+  const line = selectedLine(state);
+  if (!line || line.components[state.selectedComponent]?.id !== "statuses") return state;
+  const components = line.components.map((component, index) => index === state.selectedComponent ? { id: "statuses" as const, key } : component);
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
   return { ...state, draft: { ...state.draft, lines } };
 }

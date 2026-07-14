@@ -4,7 +4,7 @@ import { COMPONENT_IDS, type ComponentId, type DStatusConfig } from "./config.js
 import { renderStatusLines, type RenderState } from "./renderer.js";
 import {
   addComponent, addLine, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow,
-  cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, setSelectedQuotaProvider, toggleQuotaReset,
+  cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, setSelectedQuotaProvider, setSelectedStatusKey, toggleQuotaReset,
   removeSelectedLine, replaceSelectedComponent, saveSettings, cancelSettings, selectComponent, selectLine,
 } from "./settings-model.js";
 
@@ -17,6 +17,14 @@ const quotaProviderNames: Record<string, string> = {
   "zai-coding-cn": "z.ai Coding CN",
   "minimax-cn": "MiniMax CN",
 };
+
+function sanitizePickerText(value: string): string {
+  return value
+    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
+    .replace(/[\u0000-\u001f\u007f\u0080-\u009f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export async function openSettings(
   ctx: ExtensionCommandContext,
@@ -33,17 +41,22 @@ export async function openSettings(
     let pickerMode: "add" | "replace" = "add";
     let providerPickerIndex: number | undefined;
     let providerPickerItems: Array<{ id: string; label: string }> = [];
-    const currentQuotaComponent = () => state.draft.lines[state.selectedLine]?.components[state.selectedComponent];
-    const currentQuotaProviderId = () => {
-      const component = currentQuotaComponent();
-      return component?.id === "quota" ? component.key : undefined;
+    let pickerKind: "quota" | "status" = "quota";
+    const currentDynamicComponent = () => state.draft.lines[state.selectedLine]?.components[state.selectedComponent];
+    const currentDynamicKey = () => {
+      const component = currentDynamicComponent();
+      return component?.id === "quota" || component?.id === "statuses" ? component.key : undefined;
     };
     const refreshProviderPickerItems = () => {
-      const groups = getRenderState().quotaGroups ?? [];
+      const stateSnapshot = getRenderState();
       const items = new Map<string, string>();
-      for (const group of groups) items.set(group.id, group.label);
-      const current = currentQuotaProviderId();
-      if (current && !items.has(current)) items.set(current, quotaProviderNames[current] ?? current);
+      if (pickerKind === "quota") {
+        for (const group of stateSnapshot.quotaGroups ?? []) items.set(group.id, sanitizePickerText(group.label));
+      } else {
+        for (const [key, value] of stateSnapshot.statuses.entries()) items.set(key, `${sanitizePickerText(key)}: ${sanitizePickerText(value)}`);
+      }
+      const current = currentDynamicKey();
+      if (current && !items.has(current)) items.set(current, sanitizePickerText(current));
       providerPickerItems = Array.from(items, ([id, label]) => ({ id, label }));
     };
     const component: Component = {
@@ -52,19 +65,21 @@ export async function openSettings(
         const title = theme.fg("accent", theme.bold(" dstatus 设置 "));
         lines.push(title);
         const quota = state.draft.quota ?? { window: "5h" as const, showReset: false };
-        const currentProvider = currentQuotaProviderId();
+        const currentProvider = currentDynamicKey();
         lines.push(theme.fg("muted", `全局溢出: ${state.draft.overflow}   [o]切换`));
         lines.push(theme.fg("muted", `配额窗口: ${quota.window}   [q]切换   reset 时间: ${quota.showReset ? "显示" : "隐藏"}   [t]切换`));
-        lines.push(theme.fg("muted", `当前用量模型: ${currentProvider ? quotaProviderNames[currentProvider] ?? currentProvider : "请先选中 quota 组件"}   [p]选择`));
+        lines.push(theme.fg("muted", `当前绑定: ${currentProvider ? quotaProviderNames[currentProvider] ?? currentProvider : "请先选中 quota / statuses 组件"}   [p]选择`));
         if (providerPickerIndex !== undefined) {
           lines.push("");
-          lines.push(theme.fg("accent", "为当前 quota 组件选择模型（Enter / Space 确认，Esc 取消）"));
+          lines.push(theme.fg("accent", pickerKind === "quota"
+            ? "为当前 quota 组件选择模型（Enter / Space 确认，Esc 取消）"
+            : "为当前 statuses 组件选择状态（Enter / Space 确认，Esc 取消）"));
           if (providerPickerItems.length === 0) {
-            lines.push(theme.fg("dim", "暂无可用 quota 模型，请先等待 pi-dusage 快照"));
+            lines.push(theme.fg("dim", pickerKind === "quota" ? "暂无可用 quota 模型，请先等待 pi-dusage 快照" : "暂无可用 status，请先等待扩展发布状态"));
           } else {
             providerPickerItems.forEach((item, index) => {
               const marker = index === providerPickerIndex ? theme.fg("accent", "❯ ") : "  ";
-              const checked = currentQuotaProviderId() === item.id ? "◉" : "○";
+              const checked = currentDynamicKey() === item.id ? "◉" : "○";
               lines.push(`${marker}${checked} ${item.label}`);
             });
           }
@@ -85,7 +100,7 @@ export async function openSettings(
           const overflow = line.overflow ? ` (${line.overflow})` : " (继承)";
           const parts = line.components.map((item, itemIndex) => {
             const label = componentNames[item.id] ?? item.id;
-            const detail = item.id === "quota" && item.key ? `: ${quotaProviderNames[item.key] ?? item.key}` : "";
+            const detail = (item.id === "quota" || item.id === "statuses") && item.key ? `: ${quotaProviderNames[item.key] ?? item.key}` : "";
             return selected && itemIndex === state.selectedComponent
               ? theme.fg("accent", `⟦${label}${detail}⟧`)
               : `${label}${detail}`;
@@ -97,7 +112,7 @@ export async function openSettings(
         const preview = renderStatusLines(state.draft, getRenderState(), Math.max(20, width - 2), (segments) => segments.map((s) => s.text.trim()).join(" | "));
         lines.push(...(preview.length ? preview.map((line) => theme.fg("text", `  ${line}`)) : [theme.fg("dim", "  (空) ")]));
         lines.push("");
-        lines.push(theme.fg("dim", "↑↓ 行  ←→ 组件  a 新行  c 修改组件  n 新增组件  x 删除组件  [ 上移组件  ] 下移组件  p 当前用量模型  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
+        lines.push(theme.fg("dim", "↑↓ 行  ←→ 组件  a 新行  c 修改组件  n 新增组件  x 删除组件  [ 上移组件  ] 下移组件  p 绑定动态数据  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
         return lines.map((line) => truncateToWidth(line, width, ""));
       },
       handleInput(data: string): void {
@@ -108,7 +123,9 @@ export async function openSettings(
           else if (providerPickerItems.length > 0 && (matchesKey(data, "enter") || data === " " || matchesKey(data, "space"))) {
             const item = providerPickerItems[providerPickerIndex];
             if (item) {
-              state = setSelectedQuotaProvider(state, item.id);
+              state = pickerKind === "quota"
+                ? setSelectedQuotaProvider(state, item.id)
+                : setSelectedStatusKey(state, item.id);
               providerPickerIndex = undefined;
             }
           }
@@ -155,9 +172,10 @@ export async function openSettings(
         else if (data === "o") state = cycleGlobalOverflow(state);
         else if (data === "q") state = cycleQuotaWindow(state);
         else if (data === "t") state = toggleQuotaReset(state);
-        else if (data === "p" && currentQuotaComponent()?.id === "quota") {
+        else if (data === "p" && (currentDynamicComponent()?.id === "quota" || currentDynamicComponent()?.id === "statuses")) {
+          pickerKind = currentDynamicComponent()?.id === "quota" ? "quota" : "status";
           refreshProviderPickerItems();
-          const current = currentQuotaProviderId();
+          const current = currentDynamicKey();
           providerPickerIndex = Math.max(0, providerPickerItems.findIndex((item) => item.id === current));
         }
         else if (data === "r") state = cycleSelectedLineOverflow(state);

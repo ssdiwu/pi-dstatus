@@ -25,7 +25,7 @@ describe("status renderer", () => {
 
   it("renders context and remaining quota windows through the same formatter", () => {
     expect(renderQuotaWindow({ id: "context", used: 324_000, limit: 372_000 })).toEqual({ text: "87% ━━━━━━━━── · 324K of 372K", compactText: "87% ━━━━━━━━──", bar: "━━━━━━━━──" });
-    expect(renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" })).toEqual({ text: "5h 73% left ━━━━━━━─── · reset 14:20", compactText: "5h 73% ━━━━━━━───", bar: "━━━━━━━───" });
+    expect(renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" })).toEqual({ text: "5h 73% ━━━━━━━─── · reset 14:20", compactText: "5h 73% ━━━━━━━───", bar: "━━━━━━━───" });
   });
 
   it("does not render an unbound quota component before provider selection", () => {
@@ -59,6 +59,13 @@ describe("status renderer", () => {
     expect(segments.map((segment) => segment.id)).toEqual([
       "context:context", "quota:openai-codex", "quota:openai-codex:extra", "quota:zai-coding-cn",
     ]);
+  });
+
+  it("filters statuses when a status component has a key", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "statuses" as const, key: "mcp" }] }] };
+    const filtered = renderStatusLines(config, { ...state, statuses: new Map([["mcp", "MCP: ready"], ["dteam", "1 worker active"]]) }, 120, plain);
+    expect(filtered.join("\n")).toContain("MCP: ready");
+    expect(filtered.join("\n")).not.toContain("1 worker active");
   });
 
   it("renders all default data and removes empty statuses", () => {
