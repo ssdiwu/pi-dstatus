@@ -98,6 +98,13 @@ export async function openSettings(
         for (const group of stateSnapshot.quotaGroups ?? []) items.set(group.id, sanitizePickerText(group.label));
       } else {
         for (const [key, value] of stateSnapshot.statuses.entries()) items.set(key, `${sanitizePickerText(key)}: ${sanitizePickerText(value)}`);
+        for (const line of state.draft.lines) {
+          for (const component of line.components) {
+            if (component.id === "statuses" && component.key && !items.has(component.key)) {
+              items.set(component.key, sanitizePickerText(component.key));
+            }
+          }
+        }
       }
       const current = currentDynamicKey();
       if (current && !items.has(current)) items.set(current, sanitizePickerText(current));

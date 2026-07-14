@@ -168,6 +168,29 @@ describe("/dstatus settings integration", () => {
     expect(saved?.lines[0]?.components).toEqual([{ id: "statuses", key: "dteam" }]);
   });
 
+  it("keeps configured status keys selectable when runtime values are empty", async () => {
+    let component: any;
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "statuses" }, { id: "statuses", key: "mcp" }, { id: "statuses", key: "dgoal" }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const promise = openSettings(ctx, config, () => ({ ...renderState(), statuses: new Map() }));
+    await Promise.resolve();
+    component.handleInput("\r");
+    component.handleInput("\r");
+    expect(component.render(100).join("\n")).toContain("mcp");
+    component.handleInput("\x1b");
+    component.handleInput("\x1b");
+    component.handleInput("\x1b");
+    await expect(promise).resolves.toBeUndefined();
+  });
+
   it("cancels the draft without returning a configuration", async () => {
     let component: any;
     const ctx: any = {
