@@ -70,6 +70,7 @@ const COLORS: Record<ComponentId, RGB> = {
   statuses: { r: 95, g: 82, b: 48 },
 };
 const ARROW = "";
+const QUOTA_BAR_WIDTH = 20;
 const QUOTA_GROUP_COLORS: RGB[] = [
   { r: 38, g: 122, b: 117 },
   { r: 47, g: 103, b: 131 },
@@ -105,9 +106,9 @@ function formatTokenCount(value: number): string {
   return String(Math.max(0, Math.round(value)));
 }
 
-function formatQuotaBar(percent: number, width = 20): string {
+function formatQuotaBar(percent: number, width = QUOTA_BAR_WIDTH): string {
   const safePercent = Math.max(0, Math.min(100, percent));
-  const filled = Math.round((safePercent / 100) * width);
+  const filled = Math.floor((safePercent / 100) * width);
   return `${"━".repeat(filled)}${"─".repeat(width - filled)}`;
 }
 

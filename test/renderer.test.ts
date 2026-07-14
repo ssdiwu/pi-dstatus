@@ -33,7 +33,16 @@ describe("status renderer", () => {
     expect(remaining?.text).toContain("5h 73% ");
     expect(remaining?.text).toContain("reset 14:20");
     expect(remaining?.bar).toHaveLength(20);
-    expect(remaining?.bar.split("─")[0]).toHaveLength(15);
+    expect(remaining?.bar.split("─")[0]).toHaveLength(14);
+  });
+
+  it("uses 5% progress units and prefers explicit percentages", () => {
+    for (const [percent, filled] of [[0, 0], [5, 1], [50, 10], [100, 20]] as const) {
+      const display = renderQuotaWindow({ id: `quota-${percent}`, remainingPercent: percent });
+      expect(display?.bar).toHaveLength(20);
+      expect(display?.bar.split("─")[0]).toHaveLength(filled);
+    }
+    expect(renderQuotaWindow({ id: "explicit", used: 90, limit: 100, usedPercent: 25 })?.text).toContain("25% ");
   });
 
   it("does not render an unbound quota component before provider selection", () => {
