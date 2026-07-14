@@ -66,15 +66,16 @@ export async function openSettings(
         lines.push(title);
         const model = state.draft.model ?? { showProvider: true };
         const quota = state.draft.quota ?? { window: "5h" as const, showReset: false };
-        const currentProvider = currentDynamicKey();
-        lines.push(theme.fg("muted", `全局溢出: ${state.draft.overflow}   [o]切换`));
-        lines.push(theme.fg("muted", `模型 provider: ${model.showProvider ? "显示" : "隐藏"}   [m]切换`));
-        lines.push(theme.fg("muted", `配额窗口: ${quota.window}   [q]切换   reset 时间: ${quota.showReset ? "显示" : "隐藏"}   [t]切换`));
         const currentComponent = currentDynamicComponent();
-        const bindingLabel = currentProvider
-          ? quotaProviderNames[currentProvider] ?? currentProvider
-          : currentComponent?.id === "quota" ? "未绑定模型" : currentComponent?.id === "statuses" ? "未绑定 status" : "请先选中 quota / statuses 组件";
-        lines.push(theme.fg("muted", `当前绑定: ${bindingLabel}   [p]选择`));
+        const bindingLabel = currentDynamicKey()
+          ? quotaProviderNames[currentDynamicKey()!] ?? currentDynamicKey()
+          : currentComponent?.id === "quota" ? "未绑定" : currentComponent?.id === "statuses" ? "未绑定" : "未选";
+        lines.push(theme.fg("muted", [
+          `溢出:${state.draft.overflow}[o]`,
+          `provider:${model.showProvider ? "显" : "隐"}[m]`,
+          `配额:${quota.window}[q] reset:${quota.showReset ? "显" : "隐"}[t]`,
+          `绑定:${bindingLabel}[p]`,
+        ].join("  |  ")));
         if (providerPickerIndex !== undefined) {
           lines.push("");
           lines.push(theme.fg("accent", pickerKind === "quota"
