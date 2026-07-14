@@ -42,6 +42,29 @@ describe("/dstatus settings integration", () => {
     expect(saved?.lines).toHaveLength(2);
   });
 
+  it("lets the user pick a specific component", async () => {
+    let component: any;
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "dir" }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const promise = openSettings(ctx, config, renderState);
+    await Promise.resolve();
+    component.handleInput("c");
+    expect(component.render(100).join("\n")).toContain("选择要加入的组件");
+    component.handleInput("\x1b[B");
+    component.handleInput("\r");
+    component.handleInput("s");
+    const saved = await promise;
+    expect(saved?.lines[0]?.components.map((item) => item.id)).toEqual(["dir", "git"]);
+  });
+
   it("cancels the draft without returning a configuration", async () => {
     let component: any;
     const ctx: any = {
