@@ -105,9 +105,9 @@ function formatTokenCount(value: number): string {
   return String(Math.max(0, Math.round(value)));
 }
 
-function formatQuotaBar(percent: number, width = 10): string {
+function formatQuotaBar(percent: number, width = 20): string {
   const safePercent = Math.max(0, Math.min(100, percent));
-  const filled = Math.floor((safePercent / 100) * width);
+  const filled = Math.round((safePercent / 100) * width);
   return `${"━".repeat(filled)}${"─".repeat(width - filled)}`;
 }
 
@@ -124,7 +124,7 @@ export function renderQuotaWindow(quota: QuotaWindow): QuotaDisplay | undefined 
   if (hasAmounts && usedPercent !== undefined) {
     barPercent = usedPercent;
     const bar = formatQuotaBar(barPercent);
-    text = `${Math.round(usedPercent)}% ${bar} · ${formatTokenCount(quota.used!)} of ${formatTokenCount(quota.limit!)}`;
+    text = `${Math.round(usedPercent)}% ${bar} · ${formatTokenCount(quota.used!)}/${formatTokenCount(quota.limit!)}`;
     compactText = `${Math.round(usedPercent)}% ${bar}`;
   } else if (remainingPercent !== undefined) {
     barPercent = remainingPercent;
@@ -143,7 +143,7 @@ function quotaSegments(quotas: readonly QuotaWindow[] | undefined, id: Component
   return (quotas ?? []).flatMap((quota, index) => {
     const display = renderQuotaWindow(quota);
     if (!display) return [];
-    return [{ id: `${id}:${quota.id}`, text: ` ◌ ${display.text}`, compactText: ` ◌ ${display.compactText}`, priority: priority + index, bg }];
+    return [{ id: `${id}:${quota.id}`, text: ` ${display.text}`, compactText: ` ${display.compactText}`, priority: priority + index, bg }];
   });
 }
 
@@ -156,11 +156,21 @@ function quotaGroupColor(id: string): RGB {
   return QUOTA_GROUP_COLORS[hash % QUOTA_GROUP_COLORS.length]!;
 }
 
+function compactQuotaLabel(group: QuotaGroup): string {
+  if (group.id === "openai-codex") return "Codex";
+  if (group.id.startsWith("openai-codex:")) {
+    return sanitizeText(group.label).replace(/^GPT-\d+(?:\.\d+)?-Codex-/i, "").replace(/-/g, " ") || "Codex";
+  }
+  if (group.id === "zai-coding-cn") return "Z.ai";
+  if (group.id === "minimax-cn") return "MiniMax";
+  return sanitizeText(group.label).replace(/\s+(?:Coding\s+)?CN$/i, "") || "Quota";
+}
+
 function quotaGroupSegments(groups: readonly QuotaGroup[] | undefined, id: ComponentId | string, priority: number, settings: QuotaSettings = { window: "5h", showReset: false }, providerId?: string): RenderSegment[] {
   if (!providerId) return [];
   return (groups ?? []).flatMap((group, index) => {
     if (providerId !== undefined && group.id !== providerId) return [];
-    const label = sanitizeText(group.label);
+    const label = compactQuotaLabel(group);
     if (!label) return [];
     const windows = group.windows
       .filter((quota) => settings.window === "all" || isFiveHourWindow(quota))

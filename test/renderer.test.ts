@@ -24,8 +24,16 @@ describe("status renderer", () => {
   });
 
   it("renders context and remaining quota windows through the same formatter", () => {
-    expect(renderQuotaWindow({ id: "context", used: 324_000, limit: 372_000 })).toEqual({ text: "87% ━━━━━━━━── · 324K of 372K", compactText: "87% ━━━━━━━━──", bar: "━━━━━━━━──" });
-    expect(renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" })).toEqual({ text: "5h 73% ━━━━━━━─── · reset 14:20", compactText: "5h 73% ━━━━━━━───", bar: "━━━━━━━───" });
+    const context = renderQuotaWindow({ id: "context", used: 324_000, limit: 372_000 });
+    expect(context?.text).toContain("87% ");
+    expect(context?.text).toContain("324K/372K");
+    expect(context?.bar).toHaveLength(20);
+    expect(context?.bar.split("─")[0]).toHaveLength(17);
+    const remaining = renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" });
+    expect(remaining?.text).toContain("5h 73% ");
+    expect(remaining?.text).toContain("reset 14:20");
+    expect(remaining?.bar).toHaveLength(20);
+    expect(remaining?.bar.split("─")[0]).toHaveLength(15);
   });
 
   it("does not render an unbound quota component before provider selection", () => {
@@ -59,6 +67,9 @@ describe("status renderer", () => {
     expect(segments.map((segment) => segment.id)).toEqual([
       "context:context", "quota:openai-codex", "quota:openai-codex:extra", "quota:zai-coding-cn",
     ]);
+    expect(segments[1]!.text).toContain("Codex 5h 77%");
+    expect(segments[2]!.text).toContain("Spark 5h 98%");
+    expect(segments[3]!.text).toContain("Z.ai 5h 99%");
   });
 
   it("filters statuses when a status component has a key", () => {
@@ -73,7 +84,7 @@ describe("status renderer", () => {
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.join("\n")).toContain("project");
     expect(lines.join("\n")).toContain("MCP: 2/2 servers");
-    expect(lines.join("\n")).toContain("57K of 128K");
+    expect(lines.join("\n")).toContain("57K/128K");
     expect(lines.join("\n")).not.toContain("empty");
   });
 
