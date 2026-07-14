@@ -2,12 +2,22 @@
 
 个人的多逻辑行、可配置 Pi `Footer`（底栏）扩展，使用 Powerline 箭头色块风格。
 
+公开仓库：[github.com/ssdiwu/pi-dstatus](https://github.com/ssdiwu/pi-dstatus)
+
 ## 安装
 
-在项目目录执行：
+安装已发布的 `0.0.1` 版本：
 
 ```bash
-pi install /Users/diwu/Workspace/Codes/Githubs/pi-dstatus
+pi install npm:pi-dstatus
+```
+
+开发版可以从仓库目录安装：
+
+```bash
+git clone https://github.com/ssdiwu/pi-dstatus.git
+cd pi-dstatus
+pi install .
 ```
 
 启用前请移除或停用 `@npm-ken/pi-bar`，因为两个扩展都会竞争自定义 Footer。
@@ -26,7 +36,7 @@ pi install /Users/diwu/Workspace/Codes/Githubs/pi-dstatus
 ## 本地 TUI 验证
 
 1. 先停用 `@npm-ken/pi-bar`。
-2. 执行 `pi install /Users/diwu/Workspace/Codes/Githubs/pi-dstatus`，或用 `pi -e ./extensions/index.ts` 临时加载。
+2. 执行 `pi install npm:pi-dstatus`，或在仓库目录用 `pi -e ./extensions/index.ts` 临时加载。
 3. 启动 `pi`，观察 Footer；输入 `/dstatus`。
 4. 用方向键选择行/组件，使用界面显示的快捷键新增、删除、排序、编辑溢出策略。
 5. 使用 `a`/`d` 增删逻辑行，`u`/`j` 排序行，`c` 修改当前组件，`n` 新增组件，`x` 删除组件，`[` 上移组件、`]` 下移组件，`o` 设置全局溢出，`r` 设置当前行溢出，`s` 保存，`Esc` 取消。
@@ -42,4 +52,4 @@ npm test
 
 ## 范围
 
-本项目不修改 Pi 核心与旧 `pi-bar`，不实现项目级覆盖、Claude 专属用量指标或 npm 发布流程。
+本项目不修改 Pi 核心与旧 `pi-bar`，不实现项目级覆盖或 Claude 专属用量指标。

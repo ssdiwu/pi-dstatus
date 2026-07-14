@@ -1,20 +1,45 @@
 {
   "name": "pi-dstatus",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Configurable multi-line Powerline status bar extension for Pi",
+  "repository": { "type": "git", "url": "https://github.com/ssdiwu/pi-dstatus.git" },
+  "homepage": "https://github.com/ssdiwu/pi-dstatus#readme",
+  "bugs": { "url": "https://github.com/ssdiwu/pi-dstatus/issues" },
   "type": "module",
   "main": "extensions/index.ts",
   "module": "extensions/index.ts",
-  "files": ["extensions", "src", "README.md", "AGENTS.md", "doc", "CHANGELOG.md", "LICENSE"],
+  "files": [
+    "extensions",
+    "src",
+    "README.md",
+    "AGENTS.md",
+    "doc",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "prepack": "npm run typecheck && npm test"
   },
-  "keywords": ["pi-package", "pi-extension", "pi-coding-agent", "statusbar", "status-bar", "footer", "powerline"],
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-coding-agent",
+    "statusbar",
+    "status-bar",
+    "footer",
+    "powerline"
+  ],
   "license": "MIT",
-  "publishConfig": { "access": "public" },
-  "pi": { "extensions": ["./extensions/index.ts"] },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/index.ts"
+    ]
+  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
     "@earendil-works/pi-tui": "*"
