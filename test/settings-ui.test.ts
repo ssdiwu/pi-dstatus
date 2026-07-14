@@ -186,6 +186,7 @@ describe("/dstatus settings integration", () => {
     let footerFactory: any;
     let customComponent: any;
     const handlers = new Map<string, (event: any, ctx: any) => void>();
+    let currentStatuses = new Map<string, string>();
     const pi: any = {
       registerCommand: (_name: string, definition: any) => { command = definition; },
       on: (name: string, handler: any) => {
@@ -215,11 +216,12 @@ describe("/dstatus settings integration", () => {
     };
     sessionStart({}, ctx);
     footerFactory({ requestRender: () => undefined }, themeWithUi, {
-      getExtensionStatuses: () => new Map([["dteam", "1 worker active"]]),
+      getExtensionStatuses: () => currentStatuses,
       onBranchChange: () => () => undefined,
     });
     const promise = command.handler("", ctx);
     await Promise.resolve();
+    currentStatuses = new Map([["dteam", "1 worker active"]]);
     customComponent.handleInput("n");
     for (let index = 0; index < 7; index += 1) customComponent.handleInput("\x1b[B");
     customComponent.handleInput("\r");

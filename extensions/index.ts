@@ -105,7 +105,10 @@ export default function piDStatus(pi: ExtensionAPI): void {
     description: "Configure the multi-line dstatus footer",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
       latestStatuses = new Map(readExtensionStatuses());
-      const next = await openSettings(ctx, config, () => renderState(ctx, latestStatuses));
+      const next = await openSettings(ctx, config, () => {
+        latestStatuses = new Map(readExtensionStatuses());
+        return renderState(ctx, latestStatuses);
+      });
       if (!next) return;
       const quotaWasEnabled = hasQuotaComponent();
       config = next;

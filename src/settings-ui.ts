@@ -68,7 +68,11 @@ export async function openSettings(
         const currentProvider = currentDynamicKey();
         lines.push(theme.fg("muted", `全局溢出: ${state.draft.overflow}   [o]切换`));
         lines.push(theme.fg("muted", `配额窗口: ${quota.window}   [q]切换   reset 时间: ${quota.showReset ? "显示" : "隐藏"}   [t]切换`));
-        lines.push(theme.fg("muted", `当前绑定: ${currentProvider ? quotaProviderNames[currentProvider] ?? currentProvider : "请先选中 quota / statuses 组件"}   [p]选择`));
+        const currentComponent = currentDynamicComponent();
+        const bindingLabel = currentProvider
+          ? quotaProviderNames[currentProvider] ?? currentProvider
+          : currentComponent?.id === "quota" ? "未绑定模型" : currentComponent?.id === "statuses" ? "未绑定 status" : "请先选中 quota / statuses 组件";
+        lines.push(theme.fg("muted", `当前绑定: ${bindingLabel}   [p]选择`));
         if (providerPickerIndex !== undefined) {
           lines.push("");
           lines.push(theme.fg("accent", pickerKind === "quota"
