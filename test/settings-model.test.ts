@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings, setSelectedQuotaProvider, setSelectedStatusKey, toggleQuotaReset } from "../src/settings-model.js";
+import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings, selectComponent, selectLine, setSelectedQuotaProvider, setSelectedStatusKey, toggleQuotaReset } from "../src/settings-model.js";
 
 describe("settings model", () => {
   it("edits, reorders, and removes lines without mutating saved config", () => {
@@ -13,6 +13,18 @@ describe("settings model", () => {
     state = removeSelectedLine(state);
     expect(state.draft.lines).toHaveLength(1);
     expect(saved.lines).toHaveLength(1);
+  });
+
+  it("uses one focus model for line and component movement", () => {
+    let state = createSettingsState(defaultConfig());
+    state = addLine(state);
+    expect(state.focus).toBe("line");
+    state = selectLine(state, -1);
+    expect(state.focus).toBe("line");
+    state = selectComponent(state, 1);
+    expect(state.focus).toBe("component");
+    state = moveComponent(state, 1);
+    expect(state.focus).toBe("component");
   });
 
   it("edits component order and lifecycle", () => {

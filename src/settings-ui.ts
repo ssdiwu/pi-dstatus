@@ -97,7 +97,7 @@ export async function openSettings(
           });
         }
         lines.push("");
-        lines.push(theme.fg("muted", `当前行: ${state.selectedLine + 1} · 当前组件: ${state.selectedComponent + 1}`));
+        lines.push(theme.fg("muted", `当前行: ${state.selectedLine + 1} · 当前组件: ${state.selectedComponent + 1} · 当前焦点: ${state.focus === "line" ? "行" : "组件"}`));
         state.draft.lines.forEach((line, index) => {
           const selected = index === state.selectedLine;
           const marker = selected ? theme.fg("accent", "❯ ") : "  ";
@@ -116,7 +116,7 @@ export async function openSettings(
         const preview = renderStatusLines(state.draft, getRenderState(), Math.max(20, width - 2), (segments) => segments.map((s) => s.text.trim()).join(" | "));
         lines.push(...(preview.length ? preview.map((line) => theme.fg("text", `  ${line}`)) : [theme.fg("dim", "  (空) ")]));
         lines.push("");
-        lines.push(theme.fg("dim", "↑↓ 行  ←→ 组件  a 新行  c 修改组件  n 新增组件  x 删除组件  [ 上移组件  ] 下移组件  p 绑定动态数据  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
+        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  a 新行  c 修改  n 新增  x 删除  [ 上移当前项  ] 下移当前项  p 绑定动态数据  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
         return lines.map((line) => truncateToWidth(line, width, ""));
       },
       handleInput(data: string): void {
@@ -171,8 +171,8 @@ export async function openSettings(
         else if (data === "x") state = removeSelectedComponent(state);
         else if (data === "u") state = moveLine(state, -1);
         else if (data === "j") state = moveLine(state, 1);
-        else if (data === "[") state = moveComponent(state, -1);
-        else if (data === "]") state = moveComponent(state, 1);
+        else if (data === "[") state = state.focus === "line" ? moveLine(state, -1) : moveComponent(state, -1);
+        else if (data === "]") state = state.focus === "line" ? moveLine(state, 1) : moveComponent(state, 1);
         else if (data === "o") state = cycleGlobalOverflow(state);
         else if (data === "q") state = cycleQuotaWindow(state);
         else if (data === "t") state = toggleQuotaReset(state);

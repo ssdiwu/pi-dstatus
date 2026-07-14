@@ -1,9 +1,12 @@
 import { COMPONENT_IDS, type ComponentId, type DStatusConfig, type Overflow, type QuotaWindowMode, type StatusLine } from "./config.js";
 
+export type SettingsFocus = "line" | "component";
+
 export interface SettingsState {
   draft: DStatusConfig;
   selectedLine: number;
   selectedComponent: number;
+  focus: SettingsFocus;
 }
 
 export function cloneConfig(config: DStatusConfig): DStatusConfig {
@@ -11,7 +14,7 @@ export function cloneConfig(config: DStatusConfig): DStatusConfig {
 }
 
 export function createSettingsState(config: DStatusConfig): SettingsState {
-  return { draft: cloneConfig(config), selectedLine: 0, selectedComponent: 0 };
+  return { draft: cloneConfig(config), selectedLine: 0, selectedComponent: 0, focus: "component" };
 }
 
 export function saveSettings(state: SettingsState): DStatusConfig {
@@ -28,13 +31,13 @@ function selectedLine(state: SettingsState): StatusLine | undefined {
 
 export function addLine(state: SettingsState): SettingsState {
   const line: StatusLine = { id: `line-${Date.now()}`, components: [{ id: "dir" }] };
-  return { ...state, draft: { ...state.draft, lines: [...state.draft.lines, line] }, selectedLine: state.draft.lines.length, selectedComponent: 0 };
+  return { ...state, draft: { ...state.draft, lines: [...state.draft.lines, line] }, selectedLine: state.draft.lines.length, selectedComponent: 0, focus: "line" };
 }
 
 export function removeSelectedLine(state: SettingsState): SettingsState {
   if (state.draft.lines.length <= 1) return state;
   const lines = state.draft.lines.filter((_, index) => index !== state.selectedLine);
-  return { ...state, draft: { ...state.draft, lines }, selectedLine: Math.min(state.selectedLine, lines.length - 1), selectedComponent: 0 };
+  return { ...state, draft: { ...state.draft, lines }, selectedLine: Math.min(state.selectedLine, lines.length - 1), selectedComponent: 0, focus: "line" };
 }
 
 export function moveLine(state: SettingsState, direction: -1 | 1): SettingsState {
@@ -42,7 +45,7 @@ export function moveLine(state: SettingsState, direction: -1 | 1): SettingsState
   if (target < 0 || target >= state.draft.lines.length) return state;
   const lines = [...state.draft.lines];
   [lines[state.selectedLine], lines[target]] = [lines[target]!, lines[state.selectedLine]!];
-  return { ...state, draft: { ...state.draft, lines }, selectedLine: target };
+  return { ...state, draft: { ...state.draft, lines }, selectedLine: target, focus: "line" };
 }
 
 export function addComponent(state: SettingsState, id?: ComponentId): SettingsState {
@@ -53,7 +56,7 @@ export function addComponent(state: SettingsState, id?: ComponentId): SettingsSt
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine
     ? { ...candidate, components: [...candidate.components, { id: next }] }
     : candidate);
-  return { ...state, draft: { ...state.draft, lines }, selectedComponent: line.components.length };
+  return { ...state, draft: { ...state.draft, lines }, selectedComponent: line.components.length, focus: "component" };
 }
 
 export function removeSelectedComponent(state: SettingsState): SettingsState {
@@ -61,7 +64,7 @@ export function removeSelectedComponent(state: SettingsState): SettingsState {
   if (!line || line.components.length <= 1) return state;
   const components = line.components.filter((_, index) => index !== state.selectedComponent);
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
-  return { ...state, draft: { ...state.draft, lines }, selectedComponent: Math.min(state.selectedComponent, components.length - 1) };
+  return { ...state, draft: { ...state.draft, lines }, selectedComponent: Math.min(state.selectedComponent, components.length - 1), focus: "component" };
 }
 
 export function replaceSelectedComponent(state: SettingsState, id: ComponentId): SettingsState {
@@ -82,20 +85,20 @@ export function moveComponent(state: SettingsState, direction: -1 | 1): Settings
   const components = [...line.components];
   [components[state.selectedComponent], components[target]] = [components[target]!, components[state.selectedComponent]!];
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
-  return { ...state, draft: { ...state.draft, lines }, selectedComponent: target };
+  return { ...state, draft: { ...state.draft, lines }, selectedComponent: target, focus: "component" };
 }
 
 export function selectLine(state: SettingsState, direction: -1 | 1): SettingsState {
   if (state.draft.lines.length === 0) return state;
   const selectedLineIndex = Math.max(0, Math.min(state.draft.lines.length - 1, state.selectedLine + direction));
   const line = state.draft.lines[selectedLineIndex];
-  return { ...state, selectedLine: selectedLineIndex, selectedComponent: Math.min(state.selectedComponent, Math.max(0, (line?.components.length ?? 1) - 1)) };
+  return { ...state, selectedLine: selectedLineIndex, selectedComponent: Math.min(state.selectedComponent, Math.max(0, (line?.components.length ?? 1) - 1)), focus: "line" };
 }
 
 export function selectComponent(state: SettingsState, direction: -1 | 1): SettingsState {
   const line = selectedLine(state);
   if (!line) return state;
-  return { ...state, selectedComponent: Math.max(0, Math.min(line.components.length - 1, state.selectedComponent + direction)) };
+  return { ...state, selectedComponent: Math.max(0, Math.min(line.components.length - 1, state.selectedComponent + direction)), focus: "component" };
 }
 
 function quotaSettings(state: SettingsState) {
