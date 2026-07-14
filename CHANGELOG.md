@@ -7,6 +7,7 @@
 ### Added
 
 - 订阅 `pi-dusage/updated` 结构化快照，动态发现 provider / 模型；上下文与每个独立 quota 组件分开渲染，`StatusComponent.key` 绑定具体用量查询。
+- 设置面板将行级与组件级配置统一收进 Enter 打开的上下文设置面板。
 
 ### Fixed
 

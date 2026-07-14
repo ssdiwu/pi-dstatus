@@ -42,10 +42,54 @@ export async function openSettings(
     let providerPickerIndex: number | undefined;
     let providerPickerItems: Array<{ id: string; label: string }> = [];
     let pickerKind: "quota" | "status" = "quota";
+    let settingsOpen = false;
+    let settingsIndex = 0;
     const currentDynamicComponent = () => state.draft.lines[state.selectedLine]?.components[state.selectedComponent];
     const currentDynamicKey = () => {
       const component = currentDynamicComponent();
       return component?.id === "quota" || component?.id === "statuses" ? component.key : undefined;
+    };
+    const settingOptions = () => {
+      if (state.focus === "line") return ["lineOverflow", "globalOverflow"] as const;
+      const component = currentDynamicComponent();
+      if (component?.id === "quota") return ["quotaProvider", "quotaWindow", "quotaReset"] as const;
+      if (component?.id === "statuses") return ["statusKey"] as const;
+      if (component?.id === "model") return ["modelProvider"] as const;
+      return ["none"] as const;
+    };
+    const optionLabel = (option: string) => {
+      const model = state.draft.model ?? { showProvider: true };
+      const quota = state.draft.quota ?? { window: "5h" as const, showReset: false };
+      const component = currentDynamicComponent();
+      const binding = currentDynamicKey();
+      switch (option) {
+        case "lineOverflow": return `行溢出: ${state.draft.lines[state.selectedLine]?.overflow ?? "继承"}`;
+        case "globalOverflow": return `全局溢出: ${state.draft.overflow}`;
+        case "quotaProvider": return `绑定模型: ${binding ? quotaProviderNames[binding] ?? binding : "未绑定"}`;
+        case "quotaWindow": return `窗口范围: ${quota.window}`;
+        case "quotaReset": return `reset 时间: ${quota.showReset ? "显示" : "隐藏"}`;
+        case "statusKey": return `绑定状态: ${binding ?? "未绑定"}`;
+        case "modelProvider": return `provider: ${model.showProvider ? "显示" : "隐藏"}`;
+        default: return `${component?.id ?? "组件"}: 无可配置项`;
+      }
+    };
+    const openDynamicPicker = (kind: "quota" | "status") => {
+      pickerKind = kind;
+      refreshProviderPickerItems();
+      const current = currentDynamicKey();
+      providerPickerIndex = Math.max(0, providerPickerItems.findIndex((item) => item.id === current));
+    };
+    const applySetting = () => {
+      const option = settingOptions()[settingsIndex];
+      switch (option) {
+        case "lineOverflow": state = cycleSelectedLineOverflow(state); break;
+        case "globalOverflow": state = cycleGlobalOverflow(state); break;
+        case "quotaProvider": openDynamicPicker("quota"); break;
+        case "quotaWindow": state = cycleQuotaWindow(state); break;
+        case "quotaReset": state = toggleQuotaReset(state); break;
+        case "statusKey": openDynamicPicker("status"); break;
+        case "modelProvider": state = toggleModelProvider(state); break;
+      }
     };
     const refreshProviderPickerItems = () => {
       const stateSnapshot = getRenderState();
@@ -64,18 +108,14 @@ export async function openSettings(
         const lines: string[] = [];
         const title = theme.fg("accent", theme.bold(" dstatus 设置 "));
         lines.push(title);
-        const model = state.draft.model ?? { showProvider: true };
-        const quota = state.draft.quota ?? { window: "5h" as const, showReset: false };
-        const currentComponent = currentDynamicComponent();
-        const bindingLabel = currentDynamicKey()
-          ? quotaProviderNames[currentDynamicKey()!] ?? currentDynamicKey()
-          : currentComponent?.id === "quota" ? "未绑定" : currentComponent?.id === "statuses" ? "未绑定" : "未选";
-        lines.push(theme.fg("muted", [
-          `溢出:${state.draft.overflow}[o]`,
-          `provider:${model.showProvider ? "显" : "隐"}[m]`,
-          `配额:${quota.window}[q] reset:${quota.showReset ? "显" : "隐"}[t]`,
-          `绑定:${bindingLabel}[p]`,
-        ].join("  |  ")));
+        if (settingsOpen) {
+          lines.push(theme.fg("accent", state.focus === "line" ? "逻辑行设置" : `${componentNames[currentDynamicComponent()?.id ?? ""] ?? "组件"} 设置`));
+          const options = settingOptions();
+          options.forEach((option, index) => {
+            const marker = index === settingsIndex ? theme.fg("accent", "❯ ") : "  ";
+            lines.push(`${marker}${optionLabel(option)}`);
+          });
+        }
         if (providerPickerIndex !== undefined) {
           lines.push("");
           lines.push(theme.fg("accent", pickerKind === "quota"
@@ -119,7 +159,7 @@ export async function openSettings(
         const preview = renderStatusLines(state.draft, getRenderState(), Math.max(20, width - 2), (segments) => segments.map((s) => s.text.trim()).join(" | "));
         lines.push(...(preview.length ? preview.map((line) => theme.fg("text", `  ${line}`)) : [theme.fg("dim", "  (空) ")]));
         lines.push("");
-        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  a 新行  c 修改  n 新增  x 删除  [ 上移当前项  ] 下移当前项  p 绑定动态数据  m 模型 provider  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
+        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  Enter 设置  a 新行  c 修改  n 新增  x 删除  [ ] 移动当前项  u/j 移动行  s 保存  Esc 返回/取消"));
         return lines.map((line) => truncateToWidth(line, width, ""));
       },
       handleInput(data: string): void {
@@ -156,11 +196,17 @@ export async function openSettings(
           return;
         }
 
-        if (matchesKey(data, "escape")) { done(cancelSettings()); return; }
-        if (matchesKey(data, "up")) state = selectLine(state, -1);
-        else if (matchesKey(data, "down")) state = selectLine(state, 1);
-        else if (matchesKey(data, "left")) state = selectComponent(state, -1);
-        else if (matchesKey(data, "right")) state = selectComponent(state, 1);
+        if (matchesKey(data, "escape")) {
+          if (settingsOpen) settingsOpen = false;
+          else { done(cancelSettings()); return; }
+        }
+        else if (settingsOpen && matchesKey(data, "up")) settingsIndex = (settingsIndex - 1 + settingOptions().length) % settingOptions().length;
+        else if (settingsOpen && matchesKey(data, "down")) settingsIndex = (settingsIndex + 1) % settingOptions().length;
+        else if (settingsOpen && matchesKey(data, "enter")) applySetting();
+        else if (!settingsOpen && matchesKey(data, "up")) state = selectLine(state, -1);
+        else if (!settingsOpen && matchesKey(data, "down")) state = selectLine(state, 1);
+        else if (!settingsOpen && matchesKey(data, "left")) state = selectComponent(state, -1);
+        else if (!settingsOpen && matchesKey(data, "right")) state = selectComponent(state, 1);
         else if (data === "a") state = addLine(state);
         else if (data === "d") state = removeSelectedLine(state);
         else if (data === "c") {
@@ -176,18 +222,8 @@ export async function openSettings(
         else if (data === "j") state = moveLine(state, 1);
         else if (data === "[") state = state.focus === "line" ? moveLine(state, -1) : moveComponent(state, -1);
         else if (data === "]") state = state.focus === "line" ? moveLine(state, 1) : moveComponent(state, 1);
-        else if (data === "o") state = cycleGlobalOverflow(state);
-        else if (data === "m") state = toggleModelProvider(state);
-        else if (data === "q") state = cycleQuotaWindow(state);
-        else if (data === "t") state = toggleQuotaReset(state);
-        else if (data === "p" && (currentDynamicComponent()?.id === "quota" || currentDynamicComponent()?.id === "statuses")) {
-          pickerKind = currentDynamicComponent()?.id === "quota" ? "quota" : "status";
-          refreshProviderPickerItems();
-          const current = currentDynamicKey();
-          providerPickerIndex = Math.max(0, providerPickerItems.findIndex((item) => item.id === current));
-        }
-        else if (data === "r") state = cycleSelectedLineOverflow(state);
-        else if (data === "s" || matchesKey(data, "enter")) { done(saveSettings(state)); return; }
+        else if (data === "s") { done(saveSettings(state)); return; }
+        else if (matchesKey(data, "enter")) { settingsOpen = true; settingsIndex = 0; }
         this.invalidate();
         tui.requestRender();
       },

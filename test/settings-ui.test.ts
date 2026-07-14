@@ -109,7 +109,8 @@ describe("/dstatus settings integration", () => {
     });
     const promise = openSettings(ctx, config, getRenderState);
     await Promise.resolve();
-    component.handleInput("p");
+    component.handleInput("\r");
+    component.handleInput("\r");
     component.handleInput("\x1b[B");
     component.handleInput("\r");
     component.handleInput("s");
@@ -131,8 +132,10 @@ describe("/dstatus settings integration", () => {
     };
     const promise = openSettings(ctx, config, renderState);
     await Promise.resolve();
-    component.handleInput("p");
+    component.handleInput("\r");
+    component.handleInput("\r");
     expect(component.render(100).join("\n")).toContain("暂无可用 quota 模型");
+    component.handleInput("\x1b");
     component.handleInput("\x1b");
     component.handleInput("\x1b");
     await expect(promise).resolves.toBeUndefined();
@@ -156,7 +159,8 @@ describe("/dstatus settings integration", () => {
     });
     const promise = openSettings(ctx, config, getRenderState);
     await Promise.resolve();
-    component.handleInput("p");
+    component.handleInput("\r");
+    component.handleInput("\r");
     component.handleInput("\x1b[B");
     component.handleInput("\r");
     component.handleInput("s");
