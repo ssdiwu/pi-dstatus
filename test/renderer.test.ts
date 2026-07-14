@@ -6,6 +6,8 @@ import { visibleWidth } from "@earendil-works/pi-tui";
 const state = {
   cwd: "/Users/507/project",
   git: { branch: "main", staged: 2, modified: 3, untracked: 1 },
+  sessionName: "status audit",
+  sessionUsage: { input: 128_000, output: 42_000, totalTokens: 480_000, cacheRead: 310_000, cacheWrite: 8_000, cost: 0.42, cacheHitRate: 94.1 },
   model: "anthropic/claude-sonnet-4",
   modelProvider: "anthropic",
   thinking: "high",
@@ -82,6 +84,18 @@ describe("status renderer", () => {
     expect(segments[3]!.text).toContain("Z.ai 5h 99%");
   });
 
+  it("renders session name and aggregated usage with a compact form", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "session" as const }, { id: "tokens" as const }, { id: "cache" as const }, { id: "cost" as const }] }] };
+    const lines = renderStatusLines(config, state, 200, plain);
+    expect(lines.join("\n")).toContain("status audit");
+    expect(lines.join("\n")).toContain("输入 128K · 输出 42K · 合计 480K");
+    expect(lines.join("\n")).toContain("缓存读取 310K · 缓存写入 8K · 命中率 94.1%");
+    expect(lines.join("\n")).toContain("费用 $0.420");
+    const usageOnly = { ...config, lines: [{ id: "only", components: [{ id: "tokens" as const }], overflow: "collapse" as const }] };
+    const collapsed = renderStatusLines(usageOnly, state, 20, plain);
+    expect(collapsed.join("\n")).toContain("输入 128K");
+  });
+
   it("can hide the model provider without changing the model id", () => {
     const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "model" as const }] }] };
     const hidden = renderStatusLines(config, { ...state, showModelProvider: false }, 120, plain);
@@ -150,7 +164,7 @@ describe("status renderer", () => {
       quotas: [],
       statuses: new Map<string, string>(),
     };
-    for (const id of ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses"] as const) {
+    for (const id of ["dir", "session", "git", "model", "thinking", "context", "tokens", "cache", "cost", "quota", "activity", "statuses"] as const) {
       const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id }] }] };
       expect(renderStatusLines(config, missing, 80, plain), id).toEqual([]);
     }

@@ -191,6 +191,84 @@ describe("/dstatus settings integration", () => {
     await expect(promise).resolves.toBeUndefined();
   });
 
+  it("keeps parent shortcuts inactive inside component settings", async () => {
+    let component: any;
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "quota" }, { id: "dir" }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const promise = openSettings(ctx, config, () => ({
+      ...renderState(),
+      quotaGroups: [{ id: "openai-codex", label: "Codex", windows: [{ id: "5h", label: "5h", remainingPercent: 80 }] }],
+    }));
+    await Promise.resolve();
+    component.handleInput("\r");
+    component.handleInput("n");
+    expect(component.render(120).join("\n")).not.toContain("选择要加入的组件");
+    component.handleInput("\x1b");
+    component.handleInput("\x1b");
+    await expect(promise).resolves.toBeUndefined();
+  });
+
+  it("sanitizes configured dynamic keys before displaying them", async () => {
+    let component: any;
+    const maliciousKey = "\x1b[2J\x1b[H";
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "statuses", key: maliciousKey }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const promise = openSettings(ctx, config, renderState);
+    await Promise.resolve();
+    const output = component.render(120).join("\n");
+    expect(output).not.toContain("\x1b[2J");
+    expect(output).not.toContain("\x1b[H");
+    component.handleInput("\x1b");
+    await expect(promise).resolves.toBeUndefined();
+  });
+
+  it("does not render zero context usage when Pi reports it as unknown", () => {
+    let sessionStart: any;
+    let footerFactory: any;
+    const pi: any = {
+      registerCommand: () => undefined,
+      on: (name: string, handler: any) => { if (name === "session_start") sessionStart = handler; },
+      events: { on: () => undefined, emit: () => undefined },
+      getThinkingLevel: () => "off",
+      exec: async () => ({ code: 1, stdout: "", stderr: "" }),
+    };
+    piDStatus(pi);
+    const ctx: any = {
+      mode: "tui",
+      cwd: "/tmp",
+      model: { id: "provider/model" },
+      getContextUsage: () => ({ tokens: null, percent: null, contextWindow: 128_000 }),
+      sessionManager: { getSessionName: () => undefined, getEntries: () => [] },
+      ui: {
+        setWorkingVisible: () => undefined,
+        setFooter: (factory: any) => { footerFactory = factory; },
+      },
+    };
+    sessionStart({}, ctx);
+    const footer = footerFactory({ requestRender: () => undefined }, theme, {
+      getExtensionStatuses: () => new Map(),
+      onBranchChange: () => () => undefined,
+    });
+    expect(footer.render(200).join("\n")).not.toContain("0%");
+    footer.dispose();
+  });
+
   it("cancels the draft without returning a configuration", async () => {
     let component: any;
     const ctx: any = {
@@ -231,6 +309,7 @@ describe("/dstatus settings integration", () => {
       cwd: "/tmp",
       model: { id: "provider/model" },
       getContextUsage: () => ({ tokens: 10, contextWindow: 128_000 }),
+      sessionManager: { getSessionName: () => undefined, getEntries: () => [] },
       ui: {
         setWorkingVisible: () => undefined,
         setFooter: (factory: any) => { footerFactory = factory; },

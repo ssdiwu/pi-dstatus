@@ -12,7 +12,7 @@ export interface QuotaSettings {
 export interface ModelSettings {
   showProvider: boolean;
 }
-export type ComponentId = "dir" | "git" | "model" | "thinking" | "context" | "quota" | "activity" | "statuses";
+export type ComponentId = "dir" | "session" | "git" | "model" | "thinking" | "context" | "tokens" | "cache" | "cost" | "quota" | "activity" | "statuses";
 
 export interface StatusComponent {
   id: ComponentId;
@@ -36,7 +36,7 @@ export interface DStatusConfig {
 export const CONFIG_DIR = join(homedir(), ".pi", "pi-dstatus");
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 export const OVERFLOWS: Overflow[] = ["wrap", "collapse", "hide"];
-export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses"];
+export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses", "session", "tokens", "cache", "cost"];
 export const DEFAULT_QUOTA_PROVIDER_IDS = ["openai-codex", "zai-coding-cn", "minimax-cn"];
 
 export function defaultConfig(): DStatusConfig {
@@ -113,7 +113,13 @@ export function validateConfig(value: unknown): DStatusConfig {
       throw new Error(`Invalid overflow at line ${index}`);
     }
     const components = rawLine.components.flatMap((rawComponent, componentIndex) => {
-      if (!isRecord(rawComponent) || !isComponentId(rawComponent.id)) {
+      if (!isRecord(rawComponent) || typeof rawComponent.id !== "string") {
+        throw new Error(`Invalid component at ${index}:${componentIndex}`);
+      }
+      if (rawComponent.id === "usage") {
+        return [{ id: "tokens" as const }, { id: "cache" as const }, { id: "cost" as const }];
+      }
+      if (!isComponentId(rawComponent.id)) {
         throw new Error(`Invalid component at ${index}:${componentIndex}`);
       }
       if (rawComponent.key !== undefined && typeof rawComponent.key !== "string") {

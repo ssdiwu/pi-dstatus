@@ -6,6 +6,7 @@
 
 ### Added
 
+- 新增可配置的会话名、输入输出 token、缓存命中率与费用组件，统计口径对齐 Pi 默认 Footer。
 - 订阅 `pi-dusage/updated` 结构化快照，动态发现 provider / 模型；上下文与每个独立 quota 组件分开渲染，`StatusComponent.key` 绑定具体用量查询。
 - 设置面板将行级与组件级配置统一收进 Enter 打开的上下文设置面板。
 
@@ -15,6 +16,8 @@
 - 未绑定 provider / 模型的 quota 组件不再渲染全部额度，避免新增组件产生重复长文本。
 - `statuses` 支持通过 key 独立显示运行时发现的 `mcp`、`dgoal`、`dteam` 等状态；quota provider 文案不再显示 `left`。
 - 打开 `/dstatus` 设置时主动同步 Footer 状态，避免 picker 显示“暂无可用 status”。
+- 修复未知 context usage 被误显示为 `0%`、设置子面板误响应父级快捷键，以及配置 key 进入 TUI 前未清洗的问题。
+- 缓存命中率改为按当前 session 累计统计，避免与累计缓存 token 使用不同口径。
 
 ## [0.0.1] - 2026-07-14
 

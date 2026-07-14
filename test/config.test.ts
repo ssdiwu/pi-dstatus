@@ -48,6 +48,15 @@ describe("configuration", () => {
     expect(config.lines[0]!.components).toEqual([{ id: "quota" }]);
   });
 
+  it("expands the pre-split usage component into readable components", () => {
+    const config = validateConfig({
+      version: 1,
+      overflow: "wrap",
+      lines: [{ id: "only", components: [{ id: "usage" }] }],
+    });
+    expect(config.lines[0]!.components).toEqual([{ id: "tokens" }, { id: "cache" }, { id: "cost" }]);
+  });
+
   it("rejects unknown component ids", () => {
     expect(() => validateConfig({ version: 1, overflow: "wrap", lines: [{ id: "x", components: [{ id: "private" }] }] })).toThrow();
   });

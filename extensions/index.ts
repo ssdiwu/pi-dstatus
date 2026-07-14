@@ -1,7 +1,9 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { loadConfig, saveConfig, type DStatusConfig } from "../src/config.js";
 import { readGitStatus } from "../src/git.js";
+import { aggregateSessionUsage, appendAssistantUsage } from "../src/usage.js";
 import { renderStatusLines, type ActivityStatus, type QuotaGroup, type RenderState } from "../src/renderer.js";
+import type { SessionUsage } from "../src/usage.js";
 import { openSettings } from "../src/settings-ui.js";
 
 function renderPlainSegments(segments: Array<{ text: string }>): string {
@@ -56,6 +58,8 @@ export default function piDStatus(pi: ExtensionAPI): void {
   let activity: ActivityStatus = { active: false, text: "" };
   let activityFrame = 0;
   let git: Awaited<ReturnType<typeof readGitStatus>>;
+  let gitRefreshInFlight = false;
+  let sessionUsage: SessionUsage | undefined;
   let latestStatuses = new Map<string, string>();
   let readExtensionStatuses: () => ReadonlyMap<string, string> = () => latestStatuses;
   let currentCtx: ExtensionContext | undefined;
@@ -74,11 +78,16 @@ export default function piDStatus(pi: ExtensionAPI): void {
 
   async function refreshGit(): Promise<void> {
     const ctx = currentCtx;
-    if (!ctx) return;
-    const next = await readGitStatus(pi, ctx.cwd);
-    if (currentCtx !== ctx) return;
-    git = next;
-    requestRender();
+    if (!ctx || gitRefreshInFlight) return;
+    gitRefreshInFlight = true;
+    try {
+      const next = await readGitStatus(pi, ctx.cwd);
+      if (currentCtx !== ctx) return;
+      git = next;
+      requestRender();
+    } finally {
+      gitRefreshInFlight = false;
+    }
   }
 
   function renderState(ctx: ExtensionContext, statuses: ReadonlyMap<string, string>): RenderState {
@@ -87,12 +96,14 @@ export default function piDStatus(pi: ExtensionAPI): void {
     return {
       cwd: ctx.cwd,
       git,
+      sessionName: ctx.sessionManager.getSessionName(),
+      sessionUsage,
       model: ctx.model?.id,
       modelProvider: ctx.model?.provider,
       showModelProvider: config.model?.showProvider,
       thinking: pi.getThinkingLevel(),
-      quotas: contextWindow > 0
-        ? [{ id: "context", used: Math.max(0, usage?.tokens ?? 0), limit: contextWindow }]
+      quotas: contextWindow > 0 && usage?.tokens !== null && usage?.tokens !== undefined
+        ? [{ id: "context", used: Math.max(0, usage.tokens), limit: contextWindow }]
         : [],
       quotaGroups,
       quotaSettings: config.quota,
@@ -123,6 +134,11 @@ export default function piDStatus(pi: ExtensionAPI): void {
 
   pi.on("model_select", requestRender);
   pi.on("thinking_level_select", requestRender);
+  pi.on("session_info_changed", requestRender);
+  pi.on("message_end", (event) => {
+    if (event.message.role === "assistant") sessionUsage = appendAssistantUsage(sessionUsage, event.message);
+    requestRender();
+  });
   pi.on("turn_start", () => setActivity({ active: true, text: "···" }));
   pi.on("turn_end", () => setActivity({ active: false, text: "" }));
   pi.on("tool_execution_start", (event) => setActivity({ active: true, text: event.toolName }));
@@ -139,6 +155,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
     latestStatuses = new Map();
     readExtensionStatuses = () => latestStatuses;
     quotaGroups = [];
+    sessionUsage = aggregateSessionUsage(ctx.sessionManager.getEntries());
     if (ctx.mode !== "tui") return;
     setDusageSubscription(hasQuotaComponent());
     ctx.ui.setWorkingVisible(false);
@@ -156,6 +173,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
       clearInterval(spinnerTimer);
       setDusageSubscription(false);
       quotaGroups = [];
+      sessionUsage = undefined;
       if (tui) tui = undefined;
       if (currentCtx === ctx) currentCtx = undefined;
       ctx.ui.setWorkingVisible(true);
@@ -188,6 +206,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
     currentCtx = undefined;
     readExtensionStatuses = () => latestStatuses;
     git = undefined;
+    sessionUsage = undefined;
     tui = undefined;
   });
 }

@@ -1,5 +1,6 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { ComponentId, DStatusConfig, Overflow, QuotaSettings, StatusComponent } from "./config.js";
+import type { SessionUsage } from "./usage.js";
 
 export interface GitStatus {
   branch: string;
@@ -29,6 +30,11 @@ export interface QuotaDisplay {
   bar: string;
 }
 
+interface TextDisplay {
+  text: string;
+  compactText: string;
+}
+
 export interface QuotaGroup {
   id: string;
   label: string;
@@ -39,6 +45,8 @@ export interface QuotaGroup {
 export interface RenderState {
   cwd: string;
   git?: GitStatus;
+  sessionName?: string;
+  sessionUsage?: SessionUsage;
   model?: string;
   modelProvider?: string;
   showModelProvider?: boolean;
@@ -63,10 +71,14 @@ export type SegmentStyle = (segments: RenderSegment[]) => string;
 
 const COLORS: Record<ComponentId, RGB> = {
   dir: { r: 45, g: 85, b: 125 },
+  session: { r: 64, g: 78, b: 112 },
   git: { r: 65, g: 105, b: 78 },
   model: { r: 100, g: 72, b: 125 },
   thinking: { r: 130, g: 88, b: 48 },
   context: { r: 46, g: 110, b: 110 },
+  tokens: { r: 103, g: 83, b: 54 },
+  cache: { r: 84, g: 93, b: 55 },
+  cost: { r: 116, g: 70, b: 52 },
   quota: { r: 46, g: 110, b: 110 },
   activity: { r: 125, g: 70, b: 75 },
   statuses: { r: 95, g: 82, b: 48 },
@@ -81,7 +93,7 @@ const QUOTA_GROUP_COLORS: RGB[] = [
 ];
 
 export function componentLabel(id: ComponentId): string {
-  return ({ dir: "DIR", git: "GIT", model: "MODEL", thinking: "THINK", context: "CTX", quota: "QUOTA", activity: "WORK", statuses: "STATUS" })[id];
+  return ({ dir: "DIR", session: "SESSION", git: "GIT", model: "MODEL", thinking: "THINK", context: "CTX", tokens: "TOKENS", cache: "CACHE", cost: "COST", quota: "QUOTA", activity: "WORK", statuses: "STATUS" })[id];
 }
 
 function basename(path: string): string {
@@ -112,6 +124,34 @@ function formatTokenCount(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M`;
   if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
   return String(Math.max(0, Math.round(value)));
+}
+
+function formatTokenUsage(usage: SessionUsage): TextDisplay | undefined {
+  const parts = [
+    usage.input > 0 ? `输入 ${formatTokenCount(usage.input)}` : "",
+    usage.output > 0 ? `输出 ${formatTokenCount(usage.output)}` : "",
+    usage.totalTokens > 0 ? `合计 ${formatTokenCount(usage.totalTokens)}` : "",
+  ].filter(Boolean);
+  if (parts.length === 0) return undefined;
+  const text = ` ${parts.join(" · ")}`;
+  return { text, compactText: text };
+}
+
+function formatCacheUsage(usage: SessionUsage): TextDisplay | undefined {
+  const parts = [
+    usage.cacheRead > 0 ? `缓存读取 ${formatTokenCount(usage.cacheRead)}` : "",
+    usage.cacheWrite > 0 ? `缓存写入 ${formatTokenCount(usage.cacheWrite)}` : "",
+    usage.cacheHitRate !== undefined ? `命中率 ${usage.cacheHitRate.toFixed(1)}%` : "",
+  ].filter(Boolean);
+  if (parts.length === 0) return undefined;
+  const text = ` ${parts.join(" · ")}`;
+  return { text, compactText: text };
+}
+
+function formatCostUsage(usage: SessionUsage): TextDisplay | undefined {
+  if (usage.cost <= 0) return undefined;
+  const text = ` 费用 $${usage.cost.toFixed(3)}`;
+  return { text, compactText: text };
 }
 
 function formatQuotaBar(percent: number, width = QUOTA_BAR_WIDTH): string {
@@ -205,6 +245,10 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
         const directory = sanitizeText(basename(state.cwd));
         return directory ? [{ id, text: ` ${directory}`, compactText: ` ${directory}`, priority: 1, bg }] : [];
       }
+    case "session": {
+      const name = state.sessionName ? sanitizeText(state.sessionName) : "";
+      return name ? [{ id, text: ` ◉ ${name}`, compactText: ` ◉ ${name}`, priority: 1, bg }] : [];
+    }
     case "git": {
       if (!state.git?.branch) return [];
       const counts = [state.git.staged ? `+${state.git.staged}` : "", state.git.modified ? `~${state.git.modified}` : "", state.git.untracked ? `?${state.git.untracked}` : ""].filter(Boolean).join(" ");
@@ -219,6 +263,18 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
       return state.thinking ? [{ id, text: ` ◎ ${state.thinking}`, compactText: ` ◎ ${state.thinking}`, priority: 4, bg }] : [];
     case "context":
       return quotaSegments(state.quotas?.filter((quota) => quota.id === "context"), id, bg, 5);
+    case "tokens": {
+      const display = state.sessionUsage ? formatTokenUsage(state.sessionUsage) : undefined;
+      return display ? [{ id, text: display.text, compactText: display.compactText, priority: 6, bg }] : [];
+    }
+    case "cache": {
+      const display = state.sessionUsage ? formatCacheUsage(state.sessionUsage) : undefined;
+      return display ? [{ id, text: display.text, compactText: display.compactText, priority: 7, bg }] : [];
+    }
+    case "cost": {
+      const display = state.sessionUsage ? formatCostUsage(state.sessionUsage) : undefined;
+      return display ? [{ id, text: display.text, compactText: display.compactText, priority: 8, bg }] : [];
+    }
     case "quota":
       return quotaGroupSegments(state.quotaGroups, id, 5, state.quotaSettings, component.key);
     case "activity":

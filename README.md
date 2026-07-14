@@ -26,10 +26,10 @@ pi install .
 
 - `/dstatus`：打开设置面板。
 - 配置文件：`~/.pi/pi-dstatus/config.json`。
-- 默认一条逻辑行：目录/Git/模型/思考等级/上下文/多个独立 `quota` 用量查询/工具或工作动画/所有当前非空扩展状态。
+- 默认一条逻辑行：目录/Git/模型/思考等级/上下文/多个独立 `quota` 用量查询/工具或工作动画/所有当前非空扩展状态；可按需加入会话名、输入输出 token、缓存命中率、费用等独立组件。
 - 当前模型组件同时显示模型名与 provider，例如 `(openai-codex)gpt-5.6-luna`，可在 `/dstatus` 用 `m` 隐藏或显示 provider；`context` 独立显示模型上下文窗口；每个 `quota` 组件订阅并显示一个 `pi-dusage` provider / 模型额度，分别渲染为独立 Powerline 色块。上下文示例：`87% ━━━━━━━━━━━━━━━━━─── · 324K/372K`。
 
-逻辑行可以新增、删除、排序，并编排行内组件；`context`、每个 `quota` 和按 key 绑定的 `statuses` 都是独立组件。安装 `pi-dusage` 后，provider / 模型额度会从结构化快照动态发现，选中某个 `quota` 组件后使用 `/dstatus` 的 `p` 指定它显示的模型；选中 `statuses` 后用同一个 `p` 指定 `mcp`、`dgoal`、`dteam` 等状态。无 key 的 `statuses` 仍表示显示全部状态。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
+逻辑行可以新增、删除、排序，并编排行内组件；`session`、`tokens`、`cache`、`cost`、`context`、每个 `quota` 和按 key 绑定的 `statuses` 都是独立组件。`session` 显示 Pi session name；`tokens` 显示输入、输出与合计 token；`cache` 显示累计缓存读写与累计命中率；`cost` 显示累计费用。安装 `pi-dusage` 后，provider / 模型额度会从结构化快照动态发现，选中某个 `quota` 组件后使用 `/dstatus` 的 `p` 指定它显示的模型；选中 `statuses` 后用同一个 `p` 指定 `mcp`、`dgoal`、`dteam` 等状态。无 key 的 `statuses` 仍表示显示全部状态。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
 
 扩展状态只读取 Pi 公开的 `setStatus(key, value)` 协议及 `getExtensionStatuses()`；未发布状态不显示，不解析 `pi-dgoal` 或其他扩展私有状态。
 

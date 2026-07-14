@@ -9,7 +9,7 @@ import {
 } from "./settings-model.js";
 
 const componentNames: Record<string, string> = {
-  dir: "目录", git: "Git", model: "模型", thinking: "思考", context: "上下文", quota: "用量配额", activity: "工作动画", statuses: "扩展状态",
+  dir: "目录", session: "会话", git: "Git", model: "模型", thinking: "思考", context: "上下文", tokens: "输入输出", cache: "缓存命中", cost: "费用", quota: "用量配额", activity: "工作动画", statuses: "扩展状态",
 };
 
 const quotaProviderNames: Record<string, string> = {
@@ -65,10 +65,10 @@ export async function openSettings(
       switch (option) {
         case "lineOverflow": return `行溢出: ${state.draft.lines[state.selectedLine]?.overflow ?? "继承"}`;
         case "globalOverflow": return `全局溢出: ${state.draft.overflow}`;
-        case "quotaProvider": return `绑定模型: ${binding ? quotaProviderNames[binding] ?? binding : "未绑定"}`;
+        case "quotaProvider": return `绑定模型: ${binding ? quotaProviderNames[binding] ?? sanitizePickerText(binding) : "未绑定"}`;
         case "quotaWindow": return `窗口范围: ${quota.window}`;
         case "quotaReset": return `reset 时间: ${quota.showReset ? "显示" : "隐藏"}`;
-        case "statusKey": return `绑定状态: ${binding ?? "未绑定"}`;
+        case "statusKey": return `绑定状态: ${binding ? sanitizePickerText(binding) : "未绑定"}`;
         case "modelProvider": return `provider: ${model.showProvider ? "显示" : "隐藏"}`;
         default: return `${component?.id ?? "组件"}: 无可配置项`;
       }
@@ -154,7 +154,9 @@ export async function openSettings(
           const overflow = line.overflow ? ` (${line.overflow})` : " (继承)";
           const parts = line.components.map((item, itemIndex) => {
             const label = componentNames[item.id] ?? item.id;
-            const detail = (item.id === "quota" || item.id === "statuses") && item.key ? `: ${quotaProviderNames[item.key] ?? item.key}` : "";
+            const detail = (item.id === "quota" || item.id === "statuses") && item.key
+              ? `: ${quotaProviderNames[item.key] ?? sanitizePickerText(item.key)}`
+              : "";
             return selected && itemIndex === state.selectedComponent
               ? theme.fg("accent", `⟦${label}${detail}⟧`)
               : `${label}${detail}`;
@@ -210,7 +212,8 @@ export async function openSettings(
         else if (settingsOpen && matchesKey(data, "up")) settingsIndex = (settingsIndex - 1 + settingOptions().length) % settingOptions().length;
         else if (settingsOpen && matchesKey(data, "down")) settingsIndex = (settingsIndex + 1) % settingOptions().length;
         else if (settingsOpen && matchesKey(data, "enter")) applySetting();
-        else if (!settingsOpen && matchesKey(data, "up")) state = selectLine(state, -1);
+        else if (settingsOpen && data !== "s") { this.invalidate(); tui.requestRender(); return; }
+        else if (matchesKey(data, "up")) state = selectLine(state, -1);
         else if (!settingsOpen && matchesKey(data, "down")) state = selectLine(state, 1);
         else if (!settingsOpen && matchesKey(data, "left")) state = selectComponent(state, -1);
         else if (!settingsOpen && matchesKey(data, "right")) state = selectComponent(state, 1);
