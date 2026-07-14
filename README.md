@@ -1,0 +1,45 @@
+# pi-dstatus
+
+个人的多逻辑行、可配置 Pi `Footer`（底栏）扩展，使用 Powerline 箭头色块风格。
+
+## 安装
+
+在项目目录执行：
+
+```bash
+pi install /Users/diwu/Workspace/Codes/Githubs/pi-dstatus
+```
+
+启用前请移除或停用 `@npm-ken/pi-bar`，因为两个扩展都会竞争自定义 Footer。
+
+## 使用
+
+- `/dstatus`：打开设置面板。
+- 配置文件：`~/.pi/pi-dstatus/config.json`。
+- 默认一条逻辑行：目录/Git/模型/思考等级/上下文/工具或工作动画/所有当前非空扩展状态。
+- 上下文默认显示为 `XXK of XXXK`，例如 `57K of 128K`；宽度不足时这条逻辑行自动 `wrap`（换行）为多条物理行。
+
+逻辑行可以新增、删除、排序，并编排行内组件。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
+
+扩展状态只读取 Pi 公开的 `setStatus(key, value)` 协议及 `getExtensionStatuses()`；未发布状态不显示，不解析 `pi-dgoal` 或其他扩展私有状态。
+
+## 本地 TUI 验证
+
+1. 先停用 `@npm-ken/pi-bar`。
+2. 执行 `pi install /Users/diwu/Workspace/Codes/Githubs/pi-dstatus`，或用 `pi -e ./extensions/index.ts` 临时加载。
+3. 启动 `pi`，观察 Footer；输入 `/dstatus`。
+4. 用方向键选择行/组件，使用界面显示的快捷键新增、删除、排序、编辑溢出策略。
+5. 使用 `a`/`d` 增删逻辑行，`u`/`j` 排序行，`c`/`x` 增删组件，`[`/`]` 排序组件，`o` 设置全局溢出，`r` 设置当前行溢出，`s` 保存，`Esc` 取消。
+6. 输入 `/dstatus` 后确认预览、保存与取消行为；再调整终端宽度验证 wrap。
+
+## 开发
+
+```bash
+npm install
+npm run typecheck
+npm test
+```
+
+## 范围
+
+本项目不修改 Pi 核心与旧 `pi-bar`，不实现项目级覆盖、Claude 专属用量指标或 npm 发布流程。
