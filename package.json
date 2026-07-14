@@ -1,6 +1,6 @@
 {
   "name": "pi-dstatus",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Configurable multi-line Powerline status bar extension for Pi",
   "repository": { "type": "git", "url": "https://github.com/ssdiwu/pi-dstatus.git" },
   "homepage": "https://github.com/ssdiwu/pi-dstatus#readme",

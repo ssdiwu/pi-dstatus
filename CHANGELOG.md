@@ -4,11 +4,19 @@
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-07-14
+
 ### Added
 
 - 新增可配置的会话名、输入输出 token、缓存命中率与费用组件，统计口径对齐 Pi 默认 Footer。
 - 订阅 `pi-dusage/updated` 结构化快照，动态发现 provider / 模型；上下文与每个独立 quota 组件分开渲染，`StatusComponent.key` 绑定具体用量查询。
 - 设置面板将行级与组件级配置统一收进 Enter 打开的上下文设置面板。
+
+### Changed
+
+- 模型组件支持显示 provider，并可在 `/dstatus` 中切换。
+- quota 状态采用紧凑的 10 格进度条、token 单位和 provider 短标签，减少 Footer 占用。
+- quota 与 statuses 支持独立绑定，设置面板实时同步运行中的公开状态和额度发现结果。
 
 ### Fixed
 
