@@ -9,6 +9,9 @@ export interface QuotaSettings {
   window: QuotaWindowMode;
   showReset: boolean;
 }
+export interface ModelSettings {
+  showProvider: boolean;
+}
 export type ComponentId = "dir" | "git" | "model" | "thinking" | "context" | "quota" | "activity" | "statuses";
 
 export interface StatusComponent {
@@ -26,6 +29,7 @@ export interface DStatusConfig {
   version: 1;
   overflow: Overflow;
   lines: StatusLine[];
+  model?: ModelSettings;
   quota?: QuotaSettings;
 }
 
@@ -39,6 +43,7 @@ export function defaultConfig(): DStatusConfig {
   return {
     version: 1,
     overflow: "wrap",
+    model: { showProvider: true },
     quota: { window: "5h", showReset: false },
     lines: [
       {
@@ -80,6 +85,11 @@ export function validateConfig(value: unknown): DStatusConfig {
   if (!isRecord(value) || value.version !== 1 || !isOverflow(value.overflow) || !Array.isArray(value.lines)) {
     throw new Error("Invalid pi-dstatus configuration");
   }
+  const model = value.model === undefined
+    ? { showProvider: true }
+    : isRecord(value.model) && typeof value.model.showProvider === "boolean"
+      ? { showProvider: value.model.showProvider }
+      : (() => { throw new Error("Invalid model settings"); })();
   const quota = value.quota === undefined
     ? { window: "5h" as const, showReset: false }
     : isRecord(value.quota)
@@ -116,7 +126,7 @@ export function validateConfig(value: unknown): DStatusConfig {
     });
     return { id: rawLine.id, components, ...(rawLine.overflow ? { overflow: rawLine.overflow } : {}) };
   });
-  return { version: 1, overflow: value.overflow, lines, quota };
+  return { version: 1, overflow: value.overflow, lines, model, quota };
 }
 
 export function configPath(configDir = CONFIG_DIR): string {

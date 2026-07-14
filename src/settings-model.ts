@@ -101,8 +101,17 @@ export function selectComponent(state: SettingsState, direction: -1 | 1): Settin
   return { ...state, selectedComponent: Math.max(0, Math.min(line.components.length - 1, state.selectedComponent + direction)), focus: "component" };
 }
 
+function modelSettings(state: SettingsState) {
+  return state.draft.model ?? { showProvider: true };
+}
+
 function quotaSettings(state: SettingsState) {
   return state.draft.quota ?? { window: "5h" as const, showReset: false };
+}
+
+export function toggleModelProvider(state: SettingsState): SettingsState {
+  const model = modelSettings(state);
+  return { ...state, draft: { ...state.draft, model: { showProvider: !model.showProvider } } };
 }
 
 export function cycleQuotaWindow(state: SettingsState): SettingsState {

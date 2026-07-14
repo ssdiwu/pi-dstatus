@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings, selectComponent, selectLine, setSelectedQuotaProvider, setSelectedStatusKey, toggleQuotaReset } from "../src/settings-model.js";
+import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings, selectComponent, selectLine, setSelectedQuotaProvider, setSelectedStatusKey, toggleModelProvider, toggleQuotaReset } from "../src/settings-model.js";
 
 describe("settings model", () => {
   it("edits, reorders, and removes lines without mutating saved config", () => {
@@ -41,6 +41,12 @@ describe("settings model", () => {
     let state = createSettingsState(defaultConfig());
     state = replaceSelectedComponent(state, "quota");
     expect(state.draft.lines[0]!.components[0]!.id).toBe("quota");
+  });
+
+  it("toggles model provider visibility", () => {
+    let state = createSettingsState(defaultConfig());
+    state = toggleModelProvider(state);
+    expect(state.draft.model).toEqual({ showProvider: false });
   });
 
   it("updates quota display settings and selected provider component", () => {

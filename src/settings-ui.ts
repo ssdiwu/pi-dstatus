@@ -4,7 +4,7 @@ import { COMPONENT_IDS, type ComponentId, type DStatusConfig } from "./config.js
 import { renderStatusLines, type RenderState } from "./renderer.js";
 import {
   addComponent, addLine, createSettingsState, cycleGlobalOverflow, cycleQuotaWindow,
-  cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, setSelectedQuotaProvider, setSelectedStatusKey, toggleQuotaReset,
+  cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, setSelectedQuotaProvider, setSelectedStatusKey, toggleModelProvider, toggleQuotaReset,
   removeSelectedLine, replaceSelectedComponent, saveSettings, cancelSettings, selectComponent, selectLine,
 } from "./settings-model.js";
 
@@ -64,9 +64,11 @@ export async function openSettings(
         const lines: string[] = [];
         const title = theme.fg("accent", theme.bold(" dstatus 设置 "));
         lines.push(title);
+        const model = state.draft.model ?? { showProvider: true };
         const quota = state.draft.quota ?? { window: "5h" as const, showReset: false };
         const currentProvider = currentDynamicKey();
         lines.push(theme.fg("muted", `全局溢出: ${state.draft.overflow}   [o]切换`));
+        lines.push(theme.fg("muted", `模型 provider: ${model.showProvider ? "显示" : "隐藏"}   [m]切换`));
         lines.push(theme.fg("muted", `配额窗口: ${quota.window}   [q]切换   reset 时间: ${quota.showReset ? "显示" : "隐藏"}   [t]切换`));
         const currentComponent = currentDynamicComponent();
         const bindingLabel = currentProvider
@@ -116,7 +118,7 @@ export async function openSettings(
         const preview = renderStatusLines(state.draft, getRenderState(), Math.max(20, width - 2), (segments) => segments.map((s) => s.text.trim()).join(" | "));
         lines.push(...(preview.length ? preview.map((line) => theme.fg("text", `  ${line}`)) : [theme.fg("dim", "  (空) ")]));
         lines.push("");
-        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  a 新行  c 修改  n 新增  x 删除  [ 上移当前项  ] 下移当前项  p 绑定动态数据  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
+        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  a 新行  c 修改  n 新增  x 删除  [ 上移当前项  ] 下移当前项  p 绑定动态数据  m 模型 provider  q 窗口  t reset  r 行溢出  o 全局  s 保存  Esc 取消"));
         return lines.map((line) => truncateToWidth(line, width, ""));
       },
       handleInput(data: string): void {
@@ -174,6 +176,7 @@ export async function openSettings(
         else if (data === "[") state = state.focus === "line" ? moveLine(state, -1) : moveComponent(state, -1);
         else if (data === "]") state = state.focus === "line" ? moveLine(state, 1) : moveComponent(state, 1);
         else if (data === "o") state = cycleGlobalOverflow(state);
+        else if (data === "m") state = toggleModelProvider(state);
         else if (data === "q") state = cycleQuotaWindow(state);
         else if (data === "t") state = toggleQuotaReset(state);
         else if (data === "p" && (currentDynamicComponent()?.id === "quota" || currentDynamicComponent()?.id === "statuses")) {

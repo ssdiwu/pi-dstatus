@@ -8,6 +8,7 @@ describe("configuration", () => {
   it("has the single default logical line with reusable quota", () => {
     const config = defaultConfig();
     expect(config.overflow).toBe("wrap");
+    expect(config.model).toEqual({ showProvider: true });
     expect(config.quota).toEqual({ window: "5h", showReset: false });
     expect(config.lines.map((line) => line.components.map((component) => component.id))).toEqual([
       ["dir", "git", "model", "thinking", "context", "quota", "quota", "quota", "activity", "statuses"],

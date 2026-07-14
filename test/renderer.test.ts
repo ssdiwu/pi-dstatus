@@ -7,6 +7,7 @@ const state = {
   cwd: "/Users/507/project",
   git: { branch: "main", staged: 2, modified: 3, untracked: 1 },
   model: "anthropic/claude-sonnet-4",
+  modelProvider: "anthropic",
   thinking: "high",
   quotas: [{ id: "context", used: 57_000, limit: 128_000 }],
   activity: { active: true, text: "bash" },
@@ -81,6 +82,13 @@ describe("status renderer", () => {
     expect(segments[3]!.text).toContain("Z.ai 5h 99%");
   });
 
+  it("can hide the model provider without changing the model id", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "model" as const }] }] };
+    const hidden = renderStatusLines(config, { ...state, showModelProvider: false }, 120, plain);
+    expect(hidden.join("\n")).toContain("claude-sonnet-4");
+    expect(hidden.join("\n")).not.toContain("(anthropic)");
+  });
+
   it("filters statuses when a status component has a key", () => {
     const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "statuses" as const, key: "mcp" }] }] };
     const filtered = renderStatusLines(config, { ...state, statuses: new Map([["mcp", "MCP: ready"], ["dteam", "1 worker active"]]) }, 120, plain);
@@ -92,6 +100,7 @@ describe("status renderer", () => {
     const lines = renderStatusLines(defaultConfig(), state, 200, plain);
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.join("\n")).toContain("project");
+    expect(lines.join("\n")).toContain("(anthropic)claude-sonnet-4");
     expect(lines.join("\n")).toContain("MCP: 2/2 servers");
     expect(lines.join("\n")).toContain("57K/128K");
     expect(lines.join("\n")).not.toContain("empty");
@@ -111,7 +120,7 @@ describe("status renderer", () => {
     const lineHide = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components, overflow: "hide" as const }] };
     const inheritedLines = renderStatusLines(globalHide, state, 20, plain);
     const overriddenLines = renderStatusLines(lineHide, state, 20, plain);
-    expect(inheritedLines.join(" ")).toContain("claude");
+    expect(inheritedLines.join(" ")).toContain("(anthropic)");
     expect(inheritedLines.length).toBeGreaterThan(1);
     expect(overriddenLines).toHaveLength(1);
     expect(overriddenLines[0]).not.toContain("claude");

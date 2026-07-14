@@ -88,6 +88,8 @@ export default function piDStatus(pi: ExtensionAPI): void {
       cwd: ctx.cwd,
       git,
       model: ctx.model?.id,
+      modelProvider: ctx.model?.provider,
+      showModelProvider: config.model?.showProvider,
       thinking: pi.getThinkingLevel(),
       quotas: contextWindow > 0
         ? [{ id: "context", used: Math.max(0, usage?.tokens ?? 0), limit: contextWindow }]

@@ -27,7 +27,7 @@ pi install .
 - `/dstatus`：打开设置面板。
 - 配置文件：`~/.pi/pi-dstatus/config.json`。
 - 默认一条逻辑行：目录/Git/模型/思考等级/上下文/多个独立 `quota` 用量查询/工具或工作动画/所有当前非空扩展状态。
-- 当前 `context` 独立显示模型上下文窗口；每个 `quota` 组件订阅并显示一个 `pi-dusage` provider / 模型额度，分别渲染为独立 Powerline 色块。上下文示例：`87% ━━━━━━━━━━━━━━━━━─── · 324K/372K`。
+- 当前模型组件同时显示模型名与 provider，例如 `(openai-codex)gpt-5.6-luna`，可在 `/dstatus` 用 `m` 隐藏或显示 provider；`context` 独立显示模型上下文窗口；每个 `quota` 组件订阅并显示一个 `pi-dusage` provider / 模型额度，分别渲染为独立 Powerline 色块。上下文示例：`87% ━━━━━━━━━━━━━━━━━─── · 324K/372K`。
 
 逻辑行可以新增、删除、排序，并编排行内组件；`context`、每个 `quota` 和按 key 绑定的 `statuses` 都是独立组件。安装 `pi-dusage` 后，provider / 模型额度会从结构化快照动态发现，选中某个 `quota` 组件后使用 `/dstatus` 的 `p` 指定它显示的模型；选中 `statuses` 后用同一个 `p` 指定 `mcp`、`dgoal`、`dteam` 等状态。无 key 的 `statuses` 仍表示显示全部状态。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
 
@@ -39,7 +39,7 @@ pi install .
 2. 执行 `pi install npm:pi-dstatus`，或在仓库目录用 `pi -e ./extensions/index.ts` 临时加载。
 3. 启动 `pi`，观察 Footer；输入 `/dstatus`。
 4. 用方向键选择行/组件，使用界面显示的快捷键新增、删除、排序、编辑溢出策略。
-5. 使用 `a`/`d` 增删逻辑行，`u`/`j` 排序行，`c` 修改当前组件，`n` 新增组件，`x` 删除组件，`[` 上移组件、`]` 下移组件，`p` 为当前 quota / statuses 组件绑定动态数据，`q` 切换 5h / 全部窗口，`t` 切换 reset 时间，`o` 设置全局溢出，`r` 设置当前行溢出，`s` 保存，`Esc` 取消。
+5. 使用 `a`/`d` 增删逻辑行，`u`/`j` 排序行，`c` 修改当前组件，`n` 新增组件，`x` 删除组件，`[` 上移组件、`]` 下移组件，`p` 为当前 quota / statuses 组件绑定动态数据，`m` 切换模型 provider 显示，`q` 切换 5h / 全部窗口，`t` 切换 reset 时间，`o` 设置全局溢出，`r` 设置当前行溢出，`s` 保存，`Esc` 取消。
 6. 输入 `/dstatus` 后确认预览、保存与取消行为；再调整终端宽度验证 wrap。
 
 ## 开发

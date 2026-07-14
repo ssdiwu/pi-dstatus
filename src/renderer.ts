@@ -40,6 +40,8 @@ export interface RenderState {
   cwd: string;
   git?: GitStatus;
   model?: string;
+  modelProvider?: string;
+  showModelProvider?: boolean;
   thinking?: string;
   quotas?: readonly QuotaWindow[];
   quotaGroups?: readonly QuotaGroup[];
@@ -98,6 +100,12 @@ function sanitizeText(value: string): string {
 function shortModel(model: string): string {
   const value = model.includes("/") ? model.split("/").pop() ?? model : model;
   return sanitizeText(value.replace(/\([^)]*context[^)]*\)/i, ""));
+}
+
+function modelDisplay(model: string, provider: string | undefined, showProvider = true): string {
+  const name = shortModel(model);
+  const source = provider ? sanitizeText(provider) : "";
+  return source && showProvider ? `(${source})${name}` : name;
 }
 
 function formatTokenCount(value: number): string {
@@ -204,7 +212,9 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
       return branch ? [{ id, text: `  ${branch}${counts ? ` ${counts}` : ""}`, compactText: `  ${branch}`, priority: 2, bg }] : [];
     }
     case "model":
-      return state.model ? [{ id, text: ` ◈ ${shortModel(state.model)}`, compactText: ` ◈ ${shortModel(state.model)}`, priority: 3, bg }] : [];
+      return state.model
+        ? [{ id, text: ` ◈ ${modelDisplay(state.model, state.modelProvider, state.showModelProvider)}`, compactText: ` ◈ ${modelDisplay(state.model, state.modelProvider, state.showModelProvider)}`, priority: 3, bg }]
+        : [];
     case "thinking":
       return state.thinking ? [{ id, text: ` ◎ ${state.thinking}`, compactText: ` ◎ ${state.thinking}`, priority: 4, bg }] : [];
     case "context":
