@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 export type Overflow = "wrap" | "collapse" | "hide";
-export type ComponentId = "dir" | "git" | "model" | "thinking" | "context" | "activity" | "statuses";
+export type ComponentId = "dir" | "git" | "model" | "thinking" | "context" | "quota" | "activity" | "statuses";
 
 export interface StatusComponent {
   id: ComponentId;
@@ -26,7 +26,7 @@ export interface DStatusConfig {
 export const CONFIG_DIR = join(homedir(), ".pi", "pi-dstatus");
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 export const OVERFLOWS: Overflow[] = ["wrap", "collapse", "hide"];
-export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "context", "activity", "statuses"];
+export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses"];
 
 export function defaultConfig(): DStatusConfig {
   return {
@@ -40,7 +40,7 @@ export function defaultConfig(): DStatusConfig {
           { id: "git" },
           { id: "model" },
           { id: "thinking" },
-          { id: "context" },
+          { id: "quota" },
           { id: "activity" },
           { id: "statuses" },
         ],

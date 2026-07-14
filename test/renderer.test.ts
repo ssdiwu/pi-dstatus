@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { defaultSegmentStyle, renderStatusLines } from "../src/renderer.js";
+import { defaultSegmentStyle, renderQuotaWindow, renderStatusLines } from "../src/renderer.js";
 import { visibleWidth } from "@earendil-works/pi-tui";
 
 const state = {
@@ -8,8 +8,7 @@ const state = {
   git: { branch: "main", staged: 2, modified: 3, untracked: 1 },
   model: "anthropic/claude-sonnet-4",
   thinking: "high",
-  contextTokens: 57_000,
-  contextWindow: 128_000,
+  quotas: [{ id: "context", used: 57_000, limit: 128_000 }],
   activity: { active: true, text: "bash" },
   statuses: new Map([["mcp", "MCP: 2/2 servers"], ["empty", ""]]),
 };
@@ -22,6 +21,11 @@ describe("status renderer", () => {
       { id: "b", text: " B", priority: 2, bg: { r: 0, g: 0, b: 255 } },
     ]);
     expect(output).toContain("\x1b[38;2;255;0;0m\x1b[48;2;0;0;255m");
+  });
+
+  it("renders context and remaining quota windows through the same formatter", () => {
+    expect(renderQuotaWindow({ id: "context", used: 324_000, limit: 372_000 })).toEqual({ text: "87% ━━━━━━━━── · 324K of 372K", compactText: "87% ━━━━━━━━──", bar: "━━━━━━━━──" });
+    expect(renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" })).toEqual({ text: "5h 73% left ━━━━━━━─── · reset 14:20", compactText: "5h 73% ━━━━━━━───", bar: "━━━━━━━───" });
   });
 
   it("renders all default data and removes empty statuses", () => {
@@ -74,9 +78,10 @@ describe("status renderer", () => {
   it("hides every component when its public data is missing", () => {
     const missing = {
       cwd: "",
+      quotas: [],
       statuses: new Map<string, string>(),
     };
-    for (const id of ["dir", "git", "model", "thinking", "context", "activity", "statuses"] as const) {
+    for (const id of ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses"] as const) {
       const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id }] }] };
       expect(renderStatusLines(config, missing, 80, plain), id).toEqual([]);
     }
@@ -99,6 +104,7 @@ describe("status renderer", () => {
     const wideState = {
       ...state,
       cwd: "/项目/非常长的目录",
+      quotas: [{ id: "context", used: 300_000, limit: 372_000 }],
       statuses: new Map([["扩展", "扩展状态很长"]]),
     };
     for (const overflow of ["wrap", "collapse", "hide"] as const) {

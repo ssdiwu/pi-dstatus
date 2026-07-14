@@ -64,6 +64,14 @@ export function removeSelectedComponent(state: SettingsState): SettingsState {
   return { ...state, draft: { ...state.draft, lines }, selectedComponent: Math.min(state.selectedComponent, components.length - 1) };
 }
 
+export function replaceSelectedComponent(state: SettingsState, id: ComponentId): SettingsState {
+  const line = selectedLine(state);
+  if (!line) return state;
+  const components = line.components.map((component, index) => index === state.selectedComponent ? { ...component, id } : component);
+  const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
+  return { ...state, draft: { ...state.draft, lines } };
+}
+
 export function moveComponent(state: SettingsState, direction: -1 | 1): SettingsState {
   const line = selectedLine(state);
   if (!line) return state;

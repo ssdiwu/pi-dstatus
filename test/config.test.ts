@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 import { defaultConfig, loadConfigAsync, saveConfig, validateConfig } from "../src/config.js";
 
 describe("configuration", () => {
-  it("has the two agreed default logical lines", () => {
+  it("has the single default logical line with reusable quota", () => {
     const config = defaultConfig();
     expect(config.overflow).toBe("wrap");
     expect(config.lines.map((line) => line.components.map((component) => component.id))).toEqual([
-      ["dir", "git", "model", "thinking", "context", "activity", "statuses"],
+      ["dir", "git", "model", "thinking", "quota", "activity", "statuses"],
     ]);
   });
 

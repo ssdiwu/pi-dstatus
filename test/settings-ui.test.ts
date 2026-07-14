@@ -14,8 +14,7 @@ function renderState() {
     git: { branch: "main", staged: 0, modified: 0, untracked: 0 },
     model: "provider/model",
     thinking: "high",
-    contextTokens: 10_000,
-    contextWindow: 128_000,
+    quotas: [{ id: "context", used: 10_000, limit: 128_000 }],
     activity: { active: false, text: "" },
     statuses: new Map([["mcp", "MCP: ready"]]),
   };
@@ -56,13 +55,37 @@ describe("/dstatus settings integration", () => {
     };
     const promise = openSettings(ctx, config, renderState);
     await Promise.resolve();
-    component.handleInput("c");
+    expect(component.render(100).join("\n")).toContain("⟦目录⟧");
+    component.handleInput("n");
     expect(component.render(100).join("\n")).toContain("选择要加入的组件");
     component.handleInput("\x1b[B");
     component.handleInput("\r");
     component.handleInput("s");
     const saved = await promise;
     expect(saved?.lines[0]?.components.map((item) => item.id)).toEqual(["dir", "git"]);
+  });
+
+  it("uses c to replace the selected component", async () => {
+    let component: any;
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "dir" }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const promise = openSettings(ctx, config, renderState);
+    await Promise.resolve();
+    component.handleInput("c");
+    expect(component.render(100).join("\n")).toContain("选择要替换的组件");
+    component.handleInput("\x1b[B");
+    component.handleInput("\r");
+    component.handleInput("s");
+    const saved = await promise;
+    expect(saved?.lines[0]?.components.map((item) => item.id)).toEqual(["git"]);
   });
 
   it("cancels the draft without returning a configuration", async () => {

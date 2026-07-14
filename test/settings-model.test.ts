@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, saveSettings } from "../src/settings-model.js";
+import { addComponent, addLine, cancelSettings, createSettingsState, cycleGlobalOverflow, cycleSelectedLineOverflow, moveComponent, moveLine, removeSelectedComponent, removeSelectedLine, replaceSelectedComponent, saveSettings } from "../src/settings-model.js";
 
 describe("settings model", () => {
   it("edits, reorders, and removes lines without mutating saved config", () => {
@@ -23,6 +23,12 @@ describe("settings model", () => {
     expect(state.draft.lines[0]!.components.at(-2)?.id).toBe("statuses");
     state = removeSelectedComponent(state);
     expect(state.draft.lines[0]!.components).toHaveLength(7);
+  });
+
+  it("replaces the selected component", () => {
+    let state = createSettingsState(defaultConfig());
+    state = replaceSelectedComponent(state, "quota");
+    expect(state.draft.lines[0]!.components[0]!.id).toBe("quota");
   });
 
   it("cycles global and line overflow", () => {

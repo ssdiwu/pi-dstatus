@@ -13,13 +13,28 @@ export interface ActivityStatus {
   active: boolean;
 }
 
+export interface QuotaWindow {
+  id: string;
+  label?: string;
+  used?: number;
+  limit?: number;
+  usedPercent?: number;
+  remainingPercent?: number;
+  resetLabel?: string;
+}
+
+export interface QuotaDisplay {
+  text: string;
+  compactText: string;
+  bar: string;
+}
+
 export interface RenderState {
   cwd: string;
   git?: GitStatus;
   model?: string;
   thinking?: string;
-  contextTokens?: number;
-  contextWindow?: number;
+  quotas?: readonly QuotaWindow[];
   activity?: ActivityStatus;
   statuses: ReadonlyMap<string, string>;
 }
@@ -41,13 +56,14 @@ const COLORS: Record<ComponentId, RGB> = {
   model: { r: 100, g: 72, b: 125 },
   thinking: { r: 130, g: 88, b: 48 },
   context: { r: 46, g: 110, b: 110 },
+  quota: { r: 46, g: 110, b: 110 },
   activity: { r: 125, g: 70, b: 75 },
   statuses: { r: 95, g: 82, b: 48 },
 };
 const ARROW = "";
 
 export function componentLabel(id: ComponentId): string {
-  return ({ dir: "DIR", git: "GIT", model: "MODEL", thinking: "THINK", context: "CTX", activity: "WORK", statuses: "STATUS" })[id];
+  return ({ dir: "DIR", git: "GIT", model: "MODEL", thinking: "THINK", context: "CTX", quota: "QUOTA", activity: "WORK", statuses: "STATUS" })[id];
 }
 
 function basename(path: string): string {
@@ -74,6 +90,48 @@ function formatTokenCount(value: number): string {
   return String(Math.max(0, Math.round(value)));
 }
 
+function formatQuotaBar(percent: number, width = 10): string {
+  const safePercent = Math.max(0, Math.min(100, percent));
+  const filled = Math.floor((safePercent / 100) * width);
+  return `${"━".repeat(filled)}${"─".repeat(width - filled)}`;
+}
+
+export function renderQuotaWindow(quota: QuotaWindow): QuotaDisplay | undefined {
+  const hasAmounts = quota.used !== undefined && quota.limit !== undefined && quota.limit > 0;
+  const usedPercent = hasAmounts
+    ? quota.usedPercent ?? (quota.used! / quota.limit!) * 100
+    : quota.usedPercent;
+  const remainingPercent = quota.remainingPercent;
+  let text: string;
+  let compactText: string;
+  let barPercent: number;
+
+  if (hasAmounts && usedPercent !== undefined) {
+    barPercent = usedPercent;
+    const bar = formatQuotaBar(barPercent);
+    text = `${Math.round(usedPercent)}% ${bar} · ${formatTokenCount(quota.used!)} of ${formatTokenCount(quota.limit!)}`;
+    compactText = `${Math.round(usedPercent)}% ${bar}`;
+  } else if (remainingPercent !== undefined) {
+    barPercent = remainingPercent;
+    const prefix = quota.label ? `${sanitizeText(quota.label)} ` : "";
+    const bar = formatQuotaBar(barPercent);
+    text = `${prefix}${Math.round(remainingPercent)}% left ${bar}${quota.resetLabel ? ` · ${sanitizeText(quota.resetLabel)}` : ""}`;
+    compactText = `${prefix}${Math.round(remainingPercent)}% ${bar}`;
+  } else {
+    return undefined;
+  }
+
+  return { text, compactText, bar: formatQuotaBar(barPercent) };
+}
+
+function quotaSegments(quotas: readonly QuotaWindow[] | undefined, id: ComponentId | string, bg: RGB, priority: number): RenderSegment[] {
+  return (quotas ?? []).flatMap((quota, index) => {
+    const display = renderQuotaWindow(quota);
+    if (!display) return [];
+    return [{ id: `${id}:${quota.id}`, text: ` ◌ ${display.text}`, compactText: ` ◌ ${display.compactText}`, priority: priority + index, bg }];
+  });
+}
+
 function renderComponent(component: StatusComponent, state: RenderState): RenderSegment[] {
   const id = component.id;
   const bg = COLORS[id];
@@ -93,12 +151,10 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
       return state.model ? [{ id, text: ` ◈ ${shortModel(state.model)}`, compactText: ` ◈ ${shortModel(state.model)}`, priority: 3, bg }] : [];
     case "thinking":
       return state.thinking ? [{ id, text: ` ◎ ${state.thinking}`, compactText: ` ◎ ${state.thinking}`, priority: 4, bg }] : [];
-    case "context": {
-      if (state.contextTokens === undefined || state.contextWindow === undefined || state.contextWindow <= 0) return [];
-      const used = formatTokenCount(state.contextTokens);
-      const total = formatTokenCount(state.contextWindow);
-      return [{ id, text: ` ◌ ${used} of ${total}`, compactText: ` ◌ ${used}`, priority: 5, bg }];
-    }
+    case "context":
+      return quotaSegments(state.quotas?.filter((quota) => quota.id === "context"), id, bg, 5);
+    case "quota":
+      return quotaSegments(state.quotas, id, bg, 5);
     case "activity":
       return state.activity?.active ? [{ id, text: ` ${sanitizeText(state.activity.text)}`, compactText: " ···", priority: 6, bg }] : [];
     case "statuses":

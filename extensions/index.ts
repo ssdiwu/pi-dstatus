@@ -32,13 +32,15 @@ export default function piDStatus(pi: ExtensionAPI): void {
 
   function renderState(ctx: ExtensionContext, statuses: ReadonlyMap<string, string>): RenderState {
     const usage = ctx.getContextUsage();
+    const contextWindow = usage?.contextWindow ?? 0;
     return {
       cwd: ctx.cwd,
       git,
       model: ctx.model?.id,
       thinking: pi.getThinkingLevel(),
-      contextTokens: usage?.tokens ?? undefined,
-      contextWindow: usage?.contextWindow ?? undefined,
+      quotas: contextWindow > 0
+        ? [{ id: "context", used: Math.max(0, usage?.tokens ?? 0), limit: contextWindow }]
+        : [],
       activity: activity.active && activity.text === "···"
         ? { ...activity, text: ["·  ", "·· ", "···", " ··", "  ·"][activityFrame % 5]! }
         : activity,
