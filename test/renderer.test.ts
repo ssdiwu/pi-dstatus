@@ -27,19 +27,19 @@ describe("status renderer", () => {
     const context = renderQuotaWindow({ id: "context", used: 324_000, limit: 372_000 });
     expect(context?.text).toContain("87% ");
     expect(context?.text).toContain("324K/372K");
-    expect(context?.bar).toHaveLength(20);
-    expect(context?.bar.split("─")[0]).toHaveLength(17);
+    expect(context?.bar).toHaveLength(10);
+    expect(context?.bar.split("─")[0]).toHaveLength(8);
     const remaining = renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" });
     expect(remaining?.text).toContain("5h 73% ");
     expect(remaining?.text).toContain("reset 14:20");
-    expect(remaining?.bar).toHaveLength(20);
-    expect(remaining?.bar.split("─")[0]).toHaveLength(14);
+    expect(remaining?.bar).toHaveLength(10);
+    expect(remaining?.bar.split("─")[0]).toHaveLength(7);
   });
 
   it("uses 5% progress units and prefers explicit percentages", () => {
-    for (const [percent, filled] of [[0, 0], [5, 1], [50, 10], [100, 20]] as const) {
+    for (const [percent, filled] of [[0, 0], [10, 1], [50, 5], [100, 10]] as const) {
       const display = renderQuotaWindow({ id: `quota-${percent}`, remainingPercent: percent });
-      expect(display?.bar).toHaveLength(20);
+      expect(display?.bar).toHaveLength(10);
       expect(display?.bar.split("─")[0]).toHaveLength(filled);
     }
     expect(renderQuotaWindow({ id: "explicit", used: 90, limit: 100, usedPercent: 25 })?.text).toContain("25% ");
