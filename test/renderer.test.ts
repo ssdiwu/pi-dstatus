@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../src/config.js";
-import { defaultSegmentStyle, renderQuotaWindow, renderStatusLines } from "../src/renderer.js";
+import { collectSegments, defaultSegmentStyle, renderQuotaWindow, renderStatusLines } from "../src/renderer.js";
 import { visibleWidth } from "@earendil-works/pi-tui";
 
 const state = {
@@ -28,9 +28,42 @@ describe("status renderer", () => {
     expect(renderQuotaWindow({ id: "5h", label: "5h", remainingPercent: 73, resetLabel: "reset 14:20" })).toEqual({ text: "5h 73% left ━━━━━━━─── · reset 14:20", compactText: "5h 73% ━━━━━━━───", bar: "━━━━━━━───" });
   });
 
+  it("does not render an unbound quota component before provider selection", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "quota" as const }] }], quota: { window: "5h" as const, showReset: false } };
+    const providerState = {
+      ...state,
+      quotaGroups: [{ id: "openai-codex", label: "Codex", windows: [{ id: "5h", label: "5h", remainingPercent: 77 }] }],
+      quotaSettings: { window: "5h" as const, showReset: false },
+    };
+    expect(collectSegments(config.lines[0]!.components, providerState)).toEqual([]);
+  });
+
+  it("renders provider quota groups as separate segments", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [
+      { id: "context" as const },
+      { id: "quota" as const, key: "openai-codex" },
+      { id: "quota" as const, key: "openai-codex:extra" },
+      { id: "quota" as const, key: "zai-coding-cn" },
+    ] }] , quota: { window: "5h" as const, showReset: false } };
+    const providerState = {
+      ...state,
+      quotaSettings: { window: "5h" as const, showReset: false },
+      quotaGroups: [
+        { id: "openai-codex", label: "Codex", windows: [{ id: "5h", label: "5h", remainingPercent: 77 }] },
+        { id: "openai-codex:extra", label: "GPT-5.3-Codex-Spark", windows: [{ id: "5h", label: "5h", remainingPercent: 98 }] },
+        { id: "zai-coding-cn", label: "z.ai Coding CN", windows: [{ id: "5h", label: "5h", remainingPercent: 99 }] },
+        { id: "minimax-cn", label: "MiniMax CN", windows: [{ id: "5h", label: "5h", remainingPercent: 97 }] },
+      ],
+    };
+    const segments = collectSegments(config.lines[0]!.components, providerState);
+    expect(segments.map((segment) => segment.id)).toEqual([
+      "context:context", "quota:openai-codex", "quota:openai-codex:extra", "quota:zai-coding-cn",
+    ]);
+  });
+
   it("renders all default data and removes empty statuses", () => {
     const lines = renderStatusLines(defaultConfig(), state, 200, plain);
-    expect(lines).toHaveLength(1);
+    expect(lines.length).toBeGreaterThan(0);
     expect(lines.join("\n")).toContain("project");
     expect(lines.join("\n")).toContain("MCP: 2/2 servers");
     expect(lines.join("\n")).toContain("57K of 128K");

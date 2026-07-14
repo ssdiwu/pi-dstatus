@@ -88,6 +88,56 @@ describe("/dstatus settings integration", () => {
     expect(saved?.lines[0]?.components.map((item) => item.id)).toEqual(["git"]);
   });
 
+  it("binds the selected quota component to a dynamically discovered provider", async () => {
+    let component: any;
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "quota" }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const getRenderState = () => ({
+      ...renderState(),
+      quotaGroups: [
+        { id: "openai-codex", label: "Codex", windows: [{ id: "5h", label: "5h", remainingPercent: 77 }] },
+        { id: "zai-coding-cn", label: "z.ai Coding CN", windows: [{ id: "5h", label: "5h", remainingPercent: 99 }] },
+      ],
+    });
+    const promise = openSettings(ctx, config, getRenderState);
+    await Promise.resolve();
+    component.handleInput("p");
+    component.handleInput("\x1b[B");
+    component.handleInput("\r");
+    component.handleInput("s");
+    const saved = await promise;
+    expect(saved?.lines[0]?.components).toEqual([{ id: "quota", key: "zai-coding-cn" }]);
+  });
+
+  it("shows an actionable empty state when no quota provider is discovered", async () => {
+    let component: any;
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "quota" }];
+    const ctx: any = {
+      mode: "tui",
+      ui: {
+        custom: (factory: any) => new Promise((resolve) => {
+          component = factory({ requestRender: () => undefined }, theme, {}, resolve);
+        }),
+      },
+    };
+    const promise = openSettings(ctx, config, renderState);
+    await Promise.resolve();
+    component.handleInput("p");
+    expect(component.render(100).join("\n")).toContain("暂无可用 quota 模型");
+    component.handleInput("\x1b");
+    component.handleInput("\x1b");
+    await expect(promise).resolves.toBeUndefined();
+  });
+
   it("cancels the draft without returning a configuration", async () => {
     let component: any;
     const ctx: any = {

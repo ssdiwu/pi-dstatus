@@ -1,4 +1,4 @@
-import { COMPONENT_IDS, type ComponentId, type DStatusConfig, type Overflow, type StatusLine } from "./config.js";
+import { COMPONENT_IDS, type ComponentId, type DStatusConfig, type Overflow, type QuotaWindowMode, type StatusLine } from "./config.js";
 
 export interface SettingsState {
   draft: DStatusConfig;
@@ -49,7 +49,7 @@ export function addComponent(state: SettingsState, id?: ComponentId): SettingsSt
   const line = selectedLine(state);
   if (!line) return state;
   const existing = new Set(line.components.map((component) => component.id));
-  const next = id ?? COMPONENT_IDS.find((candidate) => !existing.has(candidate)) ?? "statuses";
+  const next = id ?? COMPONENT_IDS.find((candidate) => candidate === "quota" || !existing.has(candidate)) ?? "statuses";
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine
     ? { ...candidate, components: [...candidate.components, { id: next }] }
     : candidate);
@@ -67,7 +67,9 @@ export function removeSelectedComponent(state: SettingsState): SettingsState {
 export function replaceSelectedComponent(state: SettingsState, id: ComponentId): SettingsState {
   const line = selectedLine(state);
   if (!line) return state;
-  const components = line.components.map((component, index) => index === state.selectedComponent ? { ...component, id } : component);
+  const components = line.components.map((component, index) => index === state.selectedComponent
+    ? id === "quota" ? { id: "quota" as const } : { id }
+    : component);
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
   return { ...state, draft: { ...state.draft, lines } };
 }
@@ -94,6 +96,29 @@ export function selectComponent(state: SettingsState, direction: -1 | 1): Settin
   const line = selectedLine(state);
   if (!line) return state;
   return { ...state, selectedComponent: Math.max(0, Math.min(line.components.length - 1, state.selectedComponent + direction)) };
+}
+
+function quotaSettings(state: SettingsState) {
+  return state.draft.quota ?? { window: "5h" as const, showReset: false };
+}
+
+export function cycleQuotaWindow(state: SettingsState): SettingsState {
+  const quota = quotaSettings(state);
+  const window: QuotaWindowMode = quota.window === "5h" ? "all" : "5h";
+  return { ...state, draft: { ...state.draft, quota: { ...quota, window } } };
+}
+
+export function toggleQuotaReset(state: SettingsState): SettingsState {
+  const quota = quotaSettings(state);
+  return { ...state, draft: { ...state.draft, quota: { ...quota, showReset: !quota.showReset } } };
+}
+
+export function setSelectedQuotaProvider(state: SettingsState, providerId: string): SettingsState {
+  const line = selectedLine(state);
+  if (!line || line.components[state.selectedComponent]?.id !== "quota") return state;
+  const components = line.components.map((component, index) => index === state.selectedComponent ? { id: "quota" as const, key: providerId } : component);
+  const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
+  return { ...state, draft: { ...state.draft, lines } };
 }
 
 export function cycleGlobalOverflow(state: SettingsState): SettingsState {

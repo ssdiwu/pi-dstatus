@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- 订阅 `pi-dusage/updated` 结构化快照，动态发现 provider / 模型；上下文与每个独立 quota 组件分开渲染，`StatusComponent.key` 绑定具体用量查询。
+
+### Fixed
+
+- 不再把 `pi-dusage` 的长文本 fallback 当作唯一额度展示；有结构化数据时清除重复状态文本。
+- 未绑定 provider / 模型的 quota 组件不再渲染全部额度，避免新增组件产生重复长文本。
+
 ## [0.0.1] - 2026-07-14
 
 ### Added

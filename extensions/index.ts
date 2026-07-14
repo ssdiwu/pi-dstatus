@@ -1,11 +1,53 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { loadConfig, saveConfig, type DStatusConfig } from "../src/config.js";
 import { readGitStatus } from "../src/git.js";
-import { renderStatusLines, type ActivityStatus, type RenderState } from "../src/renderer.js";
+import { renderStatusLines, type ActivityStatus, type QuotaGroup, type RenderState } from "../src/renderer.js";
 import { openSettings } from "../src/settings-ui.js";
 
 function renderPlainSegments(segments: Array<{ text: string }>): string {
   return segments.map((segment) => segment.text.trim()).join(" | ");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function formatResetLabel(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const numeric = Number(value);
+  const date = Number.isFinite(numeric)
+    ? new Date(numeric < 10_000_000_000 ? numeric * 1000 : numeric)
+    : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return undefined;
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `↻ ${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function parseDusageSnapshot(value: unknown): QuotaGroup[] {
+  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.providers)) return [];
+  return value.providers.flatMap((rawProvider, index) => {
+    if (!isRecord(rawProvider) || typeof rawProvider.id !== "string" || typeof rawProvider.title !== "string") return [];
+    const windows = Array.isArray(rawProvider.windows) ? rawProvider.windows.flatMap((rawWindow) => {
+      if (!isRecord(rawWindow) || typeof rawWindow.id !== "string" || typeof rawWindow.label !== "string") return [];
+      const remainingPercent = Number(rawWindow.remainingPercent);
+      if (!Number.isFinite(remainingPercent)) return [];
+      return [{
+        id: `${rawProvider.id}:${rawWindow.id}`,
+        label: rawWindow.label,
+        remainingPercent: Math.max(0, Math.min(100, remainingPercent)),
+        resetLabel: formatResetLabel(rawWindow.resetAt),
+      }];
+    }) : [];
+    const rawError = isRecord(rawProvider.error) && typeof rawProvider.error.message === "string"
+      ? rawProvider.error.message
+      : undefined;
+    return [{
+      id: rawProvider.id || `provider-${index}`,
+      label: rawProvider.title,
+      windows,
+      ...(rawError ? { error: rawError } : {}),
+    }];
+  });
 }
 
 export default function piDStatus(pi: ExtensionAPI): void {
@@ -16,9 +58,17 @@ export default function piDStatus(pi: ExtensionAPI): void {
   let git: Awaited<ReturnType<typeof readGitStatus>>;
   let latestStatuses = new Map<string, string>();
   let currentCtx: ExtensionContext | undefined;
+  let quotaGroups: QuotaGroup[] = [];
+  let dusageSubscribed = false;
   let cleanupSession: () => void = () => {};
 
   const requestRender = () => tui?.requestRender();
+  const hasQuotaComponent = () => config.lines.some((line) => line.components.some((component) => component.id === "quota"));
+  const setDusageSubscription = (enabled: boolean) => {
+    if (enabled === dusageSubscribed) return;
+    pi.events?.emit(enabled ? "pi-dusage/subscribe" : "pi-dusage/unsubscribe", { version: 1, consumerId: "pi-dstatus" });
+    dusageSubscribed = enabled;
+  };
   const setActivity = (next: ActivityStatus) => { activity = next; activityFrame = 0; requestRender(); };
 
   async function refreshGit(): Promise<void> {
@@ -41,6 +91,8 @@ export default function piDStatus(pi: ExtensionAPI): void {
       quotas: contextWindow > 0
         ? [{ id: "context", used: Math.max(0, usage?.tokens ?? 0), limit: contextWindow }]
         : [],
+      quotaGroups,
+      quotaSettings: config.quota,
       activity: activity.active && activity.text === "···"
         ? { ...activity, text: ["·  ", "·· ", "···", " ··", "  ·"][activityFrame % 5]! }
         : activity,
@@ -53,8 +105,10 @@ export default function piDStatus(pi: ExtensionAPI): void {
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
       const next = await openSettings(ctx, config, () => renderState(ctx, latestStatuses));
       if (!next) return;
+      const quotaWasEnabled = hasQuotaComponent();
       config = next;
       await saveConfig(config);
+      if (quotaWasEnabled !== hasQuotaComponent()) setDusageSubscription(hasQuotaComponent());
       requestRender();
       ctx.ui.notify("pi-dstatus 配置已保存", "info");
     },
@@ -66,13 +120,19 @@ export default function piDStatus(pi: ExtensionAPI): void {
   pi.on("turn_end", () => setActivity({ active: false, text: "" }));
   pi.on("tool_execution_start", (event) => setActivity({ active: true, text: event.toolName }));
   pi.on("tool_execution_end", () => setActivity({ active: false, text: "···" }));
+  pi.events?.on("pi-dusage/updated", (data) => {
+    quotaGroups = parseDusageSnapshot(data);
+    requestRender();
+  });
 
   pi.on("session_start", (_event, ctx) => {
     cleanupSession();
     git = undefined;
     currentCtx = ctx;
     latestStatuses = new Map();
+    quotaGroups = [];
     if (ctx.mode !== "tui") return;
+    setDusageSubscription(hasQuotaComponent());
     ctx.ui.setWorkingVisible(false);
     let disposed = false;
     const gitTimer = setInterval(() => void refreshGit(), 1500);
@@ -86,6 +146,8 @@ export default function piDStatus(pi: ExtensionAPI): void {
       disposed = true;
       clearInterval(gitTimer);
       clearInterval(spinnerTimer);
+      setDusageSubscription(false);
+      quotaGroups = [];
       if (tui) tui = undefined;
       if (currentCtx === ctx) currentCtx = undefined;
       ctx.ui.setWorkingVisible(true);

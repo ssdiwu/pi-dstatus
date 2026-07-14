@@ -4,6 +4,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 export type Overflow = "wrap" | "collapse" | "hide";
+export type QuotaWindowMode = "5h" | "all";
+export interface QuotaSettings {
+  window: QuotaWindowMode;
+  showReset: boolean;
+}
 export type ComponentId = "dir" | "git" | "model" | "thinking" | "context" | "quota" | "activity" | "statuses";
 
 export interface StatusComponent {
@@ -21,17 +26,20 @@ export interface DStatusConfig {
   version: 1;
   overflow: Overflow;
   lines: StatusLine[];
+  quota?: QuotaSettings;
 }
 
 export const CONFIG_DIR = join(homedir(), ".pi", "pi-dstatus");
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 export const OVERFLOWS: Overflow[] = ["wrap", "collapse", "hide"];
 export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses"];
+export const DEFAULT_QUOTA_PROVIDER_IDS = ["openai-codex", "zai-coding-cn", "minimax-cn"];
 
 export function defaultConfig(): DStatusConfig {
   return {
     version: 1,
     overflow: "wrap",
+    quota: { window: "5h", showReset: false },
     lines: [
       {
         id: "line-1",
@@ -40,7 +48,10 @@ export function defaultConfig(): DStatusConfig {
           { id: "git" },
           { id: "model" },
           { id: "thinking" },
-          { id: "quota" },
+          { id: "context" },
+          { id: "quota", key: "openai-codex" },
+          { id: "quota", key: "zai-coding-cn" },
+          { id: "quota", key: "minimax-cn" },
           { id: "activity" },
           { id: "statuses" },
         ],
@@ -57,6 +68,10 @@ function isOverflow(value: unknown): value is Overflow {
   return value === "wrap" || value === "collapse" || value === "hide";
 }
 
+function isQuotaWindowMode(value: unknown): value is QuotaWindowMode {
+  return value === "5h" || value === "all";
+}
+
 function isComponentId(value: unknown): value is ComponentId {
   return typeof value === "string" && COMPONENT_IDS.includes(value as ComponentId);
 }
@@ -65,6 +80,21 @@ export function validateConfig(value: unknown): DStatusConfig {
   if (!isRecord(value) || value.version !== 1 || !isOverflow(value.overflow) || !Array.isArray(value.lines)) {
     throw new Error("Invalid pi-dstatus configuration");
   }
+  const quota = value.quota === undefined
+    ? { window: "5h" as const, showReset: false }
+    : isRecord(value.quota)
+      && isQuotaWindowMode(value.quota.window)
+      && typeof value.quota.showReset === "boolean"
+      ? { window: value.quota.window, showReset: value.quota.showReset }
+      : (() => { throw new Error("Invalid quota settings"); })();
+  const legacyProviderIdsValue = isRecord(value.quota) && Array.isArray(value.quota.providerIds)
+    ? value.quota.providerIds
+    : undefined;
+  const hasLegacyProviderIds = legacyProviderIdsValue !== undefined;
+  const legacyProviderIds = legacyProviderIdsValue
+    ? legacyProviderIdsValue.filter((id: unknown): id is string => typeof id === "string" && id.length > 0)
+    : DEFAULT_QUOTA_PROVIDER_IDS;
+  const migrateLegacyQuota = value.quota === undefined || hasLegacyProviderIds;
   const lines: StatusLine[] = value.lines.map((rawLine, index) => {
     if (!isRecord(rawLine) || typeof rawLine.id !== "string" || !Array.isArray(rawLine.components)) {
       throw new Error(`Invalid status line at index ${index}`);
@@ -72,18 +102,21 @@ export function validateConfig(value: unknown): DStatusConfig {
     if (rawLine.overflow !== undefined && !isOverflow(rawLine.overflow)) {
       throw new Error(`Invalid overflow at line ${index}`);
     }
-    const components = rawLine.components.map((rawComponent, componentIndex) => {
+    const components = rawLine.components.flatMap((rawComponent, componentIndex) => {
       if (!isRecord(rawComponent) || !isComponentId(rawComponent.id)) {
         throw new Error(`Invalid component at ${index}:${componentIndex}`);
       }
       if (rawComponent.key !== undefined && typeof rawComponent.key !== "string") {
         throw new Error(`Invalid component key at ${index}:${componentIndex}`);
       }
-      return { id: rawComponent.id, ...(rawComponent.key ? { key: rawComponent.key } : {}) };
+      if (rawComponent.id === "quota" && !rawComponent.key && migrateLegacyQuota) {
+        return legacyProviderIds.map((key) => ({ id: "quota" as const, key }));
+      }
+      return [{ id: rawComponent.id, ...(rawComponent.key ? { key: rawComponent.key } : {}) }];
     });
     return { id: rawLine.id, components, ...(rawLine.overflow ? { overflow: rawLine.overflow } : {}) };
   });
-  return { version: 1, overflow: value.overflow, lines };
+  return { version: 1, overflow: value.overflow, lines, quota };
 }
 
 export function configPath(configDir = CONFIG_DIR): string {

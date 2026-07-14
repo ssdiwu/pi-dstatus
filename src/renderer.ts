@@ -1,5 +1,5 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
-import type { ComponentId, DStatusConfig, Overflow, StatusComponent } from "./config.js";
+import type { ComponentId, DStatusConfig, Overflow, QuotaSettings, StatusComponent } from "./config.js";
 
 export interface GitStatus {
   branch: string;
@@ -29,12 +29,21 @@ export interface QuotaDisplay {
   bar: string;
 }
 
+export interface QuotaGroup {
+  id: string;
+  label: string;
+  windows: readonly QuotaWindow[];
+  error?: string;
+}
+
 export interface RenderState {
   cwd: string;
   git?: GitStatus;
   model?: string;
   thinking?: string;
   quotas?: readonly QuotaWindow[];
+  quotaGroups?: readonly QuotaGroup[];
+  quotaSettings?: QuotaSettings;
   activity?: ActivityStatus;
   statuses: ReadonlyMap<string, string>;
 }
@@ -61,6 +70,12 @@ const COLORS: Record<ComponentId, RGB> = {
   statuses: { r: 95, g: 82, b: 48 },
 };
 const ARROW = "";
+const QUOTA_GROUP_COLORS: RGB[] = [
+  { r: 38, g: 122, b: 117 },
+  { r: 47, g: 103, b: 131 },
+  { r: 64, g: 116, b: 91 },
+  { r: 91, g: 91, b: 132 },
+];
 
 export function componentLabel(id: ComponentId): string {
   return ({ dir: "DIR", git: "GIT", model: "MODEL", thinking: "THINK", context: "CTX", quota: "QUOTA", activity: "WORK", statuses: "STATUS" })[id];
@@ -132,6 +147,36 @@ function quotaSegments(quotas: readonly QuotaWindow[] | undefined, id: Component
   });
 }
 
+function isFiveHourWindow(quota: QuotaWindow): boolean {
+  return quota.id === "5h" || /(^|[-_\s])5h($|[-_\s])/i.test(`${quota.id} ${quota.label ?? ""}`);
+}
+
+function quotaGroupColor(id: string): RGB {
+  const hash = Array.from(id).reduce((total, character) => total + character.charCodeAt(0), 0);
+  return QUOTA_GROUP_COLORS[hash % QUOTA_GROUP_COLORS.length]!;
+}
+
+function quotaGroupSegments(groups: readonly QuotaGroup[] | undefined, id: ComponentId | string, priority: number, settings: QuotaSettings = { window: "5h", showReset: false }, providerId?: string): RenderSegment[] {
+  if (!providerId) return [];
+  return (groups ?? []).flatMap((group, index) => {
+    if (providerId !== undefined && group.id !== providerId) return [];
+    const label = sanitizeText(group.label);
+    if (!label) return [];
+    const windows = group.windows
+      .filter((quota) => settings.window === "all" || isFiveHourWindow(quota))
+      .map((quota) => settings.showReset ? quota : { ...quota, resetLabel: undefined })
+      .map(renderQuotaWindow)
+      .filter((display): display is QuotaDisplay => display !== undefined);
+    const error = group.error ? sanitizeText(group.error) : "";
+    if (windows.length === 0 && !error) return [];
+    const windowText = windows.map((display) => display.text).join("  ");
+    const compactWindowText = windows[0]?.compactText ?? "";
+    const text = error ? ` ${label} · ${error}` : ` ${label} ${windowText}`;
+    const compactText = error ? ` ${label} · ${error}` : ` ${label} ${compactWindowText}`;
+    return [{ id: `${id}:${group.id}`, text, compactText, priority: priority + index, bg: quotaGroupColor(group.id) }];
+  });
+}
+
 function renderComponent(component: StatusComponent, state: RenderState): RenderSegment[] {
   const id = component.id;
   const bg = COLORS[id];
@@ -154,7 +199,7 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
     case "context":
       return quotaSegments(state.quotas?.filter((quota) => quota.id === "context"), id, bg, 5);
     case "quota":
-      return quotaSegments(state.quotas, id, bg, 5);
+      return quotaGroupSegments(state.quotaGroups, id, 5, state.quotaSettings, component.key);
     case "activity":
       return state.activity?.active ? [{ id, text: ` ${sanitizeText(state.activity.text)}`, compactText: " ···", priority: 6, bg }] : [];
     case "statuses":
