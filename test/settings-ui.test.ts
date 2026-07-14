@@ -180,6 +180,54 @@ describe("/dstatus settings integration", () => {
     await expect(promise).resolves.toBeUndefined();
   });
 
+  it("loads current footer statuses before opening the settings picker", async () => {
+    let command: any;
+    let sessionStart: any;
+    let footerFactory: any;
+    let customComponent: any;
+    const handlers = new Map<string, (event: any, ctx: any) => void>();
+    const pi: any = {
+      registerCommand: (_name: string, definition: any) => { command = definition; },
+      on: (name: string, handler: any) => {
+        if (name === "session_start") sessionStart = handler;
+        else if (name === "session_shutdown") handlers.set(name, handler);
+      },
+      events: { on: () => undefined, emit: () => undefined },
+      getThinkingLevel: () => "off",
+      exec: async () => ({ code: 1, stdout: "", stderr: "" }),
+    };
+    piDStatus(pi);
+    const themeWithUi = { ...theme, fg: (_color: string, text: string) => text };
+    const ctx: any = {
+      mode: "tui",
+      cwd: "/tmp",
+      model: { id: "provider/model" },
+      getContextUsage: () => ({ tokens: 10, contextWindow: 128_000 }),
+      ui: {
+        setWorkingVisible: () => undefined,
+        setFooter: (factory: any) => { footerFactory = factory; },
+        custom: (factory: any) => {
+          customComponent = factory({ requestRender: () => undefined }, themeWithUi, {}, () => undefined);
+          return new Promise(() => undefined);
+        },
+        notify: () => undefined,
+      },
+    };
+    sessionStart({}, ctx);
+    footerFactory({ requestRender: () => undefined }, themeWithUi, {
+      getExtensionStatuses: () => new Map([["dteam", "1 worker active"]]),
+      onBranchChange: () => () => undefined,
+    });
+    const promise = command.handler("", ctx);
+    await Promise.resolve();
+    customComponent.handleInput("n");
+    for (let index = 0; index < 7; index += 1) customComponent.handleInput("\x1b[B");
+    customComponent.handleInput("\r");
+    expect(customComponent.render(120).join("\n")).toContain("1 worker active");
+    handlers.get("session_shutdown")?.({}, ctx);
+    void promise;
+  });
+
   it("registers /dstatus and safely guards non-TUI mode", async () => {
     let command: any;
     const pi: any = {

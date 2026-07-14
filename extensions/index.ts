@@ -57,6 +57,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
   let activityFrame = 0;
   let git: Awaited<ReturnType<typeof readGitStatus>>;
   let latestStatuses = new Map<string, string>();
+  let readExtensionStatuses: () => ReadonlyMap<string, string> = () => latestStatuses;
   let currentCtx: ExtensionContext | undefined;
   let quotaGroups: QuotaGroup[] = [];
   let dusageSubscribed = false;
@@ -103,6 +104,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
   pi.registerCommand("dstatus", {
     description: "Configure the multi-line dstatus footer",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
+      latestStatuses = new Map(readExtensionStatuses());
       const next = await openSettings(ctx, config, () => renderState(ctx, latestStatuses));
       if (!next) return;
       const quotaWasEnabled = hasQuotaComponent();
@@ -130,6 +132,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
     git = undefined;
     currentCtx = ctx;
     latestStatuses = new Map();
+    readExtensionStatuses = () => latestStatuses;
     quotaGroups = [];
     if (ctx.mode !== "tui") return;
     setDusageSubscription(hasQuotaComponent());
@@ -156,15 +159,18 @@ export default function piDStatus(pi: ExtensionAPI): void {
     void refreshGit();
     ctx.ui.setFooter((footerTui, _theme, footerData) => {
       tui = footerTui;
+      const readStatuses = () => new Map(footerData.getExtensionStatuses());
+      readExtensionStatuses = readStatuses;
       const unsubscribe = footerData.onBranchChange(() => { void refreshGit(); requestRender(); });
       return {
         render(width: number): string[] {
-          latestStatuses = new Map(footerData.getExtensionStatuses());
+          latestStatuses = readStatuses();
           return renderStatusLines(config, renderState(ctx, latestStatuses), width);
         },
         invalidate() {},
         dispose() {
           unsubscribe();
+          if (readExtensionStatuses === readStatuses) readExtensionStatuses = () => latestStatuses;
           cleanup();
         },
       };
@@ -175,6 +181,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
     cleanupSession();
     cleanupSession = () => {};
     currentCtx = undefined;
+    readExtensionStatuses = () => latestStatuses;
     git = undefined;
     tui = undefined;
   });

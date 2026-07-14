@@ -13,6 +13,7 @@
 - 不再把 `pi-dusage` 的长文本 fallback 当作唯一额度展示；有结构化数据时清除重复状态文本。
 - 未绑定 provider / 模型的 quota 组件不再渲染全部额度，避免新增组件产生重复长文本。
 - `statuses` 支持通过 key 独立显示运行时发现的 `mcp`、`dgoal`、`dteam` 等状态；quota provider 文案不再显示 `left`。
+- 打开 `/dstatus` 设置时主动同步 Footer 状态，避免 picker 显示“暂无可用 status”。
 
 ## [0.0.1] - 2026-07-14
 
