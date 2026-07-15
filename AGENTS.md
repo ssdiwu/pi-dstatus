@@ -7,7 +7,7 @@
 ## 实现边界
 
 - 配置只读写 `~/.pi/pi-dstatus/`，不读取项目级配置。
-- 扩展状态只消费 Pi 公开的 `getExtensionStatuses()`，不解析任何扩展私有状态。
+- 扩展状态只消费 Pi 公开的 `getExtensionStatuses()` 与版本化扩展事件协议，不解析任何扩展私有状态。
 - 预览与 Footer 共用渲染核心。
 - 默认 `wrap`，支持行级 `wrap`、`collapse`、`hide`。
 - 代码改动后运行 `npm run typecheck && npm test`。

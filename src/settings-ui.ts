@@ -9,7 +9,7 @@ import {
 } from "./settings-model.js";
 
 const componentNames: Record<string, string> = {
-  dir: "目录", session: "会话", git: "Git", model: "模型", thinking: "思考", context: "上下文", tokens: "输入输出", cache: "缓存命中", cost: "费用", quota: "用量配额", activity: "工作动画", statuses: "扩展状态",
+  dir: "目录", session: "会话", git: "Git", model: "模型", thinking: "思考", fast: "快速模式", context: "上下文", tokens: "输入输出", cache: "缓存命中", cost: "费用", quota: "用量配额", activity: "工作动画", statuses: "扩展状态",
 };
 
 const quotaProviderNames: Record<string, string> = {

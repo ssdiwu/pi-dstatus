@@ -11,7 +11,7 @@ describe("configuration", () => {
     expect(config.model).toEqual({ showProvider: true });
     expect(config.quota).toEqual({ window: "5h", showReset: false });
     expect(config.lines.map((line) => line.components.map((component) => component.id))).toEqual([
-      ["dir", "git", "model", "thinking", "context", "quota", "quota", "quota", "activity", "statuses"],
+      ["dir", "git", "model", "thinking", "fast", "context", "quota", "quota", "quota", "activity", "statuses"],
     ]);
   });
 

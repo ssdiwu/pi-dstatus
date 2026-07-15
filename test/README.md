@@ -5,6 +5,7 @@
 ## 测试文件
 
 - `config.test.ts`：默认配置、配置校验、旧配置迁移与原子保存。
+- `fast.test.ts`：`pi-dfast/updated` 公开快照的版本与字段校验。
 - `renderer.test.ts`：Powerline segment、context/quota、session/tokens/cache/cost、状态过滤与宽度约束。
 - `settings-model.test.ts`：设置草稿的增删、排序、焦点、溢出和组件配置状态。
 - `settings-ui.test.ts`：`/dstatus` 设置面板、动态 picker、预览、保存/取消与生命周期边界。

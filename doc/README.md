@@ -22,8 +22,8 @@
 
 ## 数据边界
 
-Footer 只消费 Pi 公开的 `ExtensionContext`、Git 和 `footerData.getExtensionStatuses()`。配置只读写 `~/.pi/pi-dstatus/config.json`，不读取项目级配置或其他扩展私有会话状态。
+Footer 只消费 Pi 公开的 `ExtensionContext`、Git、`footerData.getExtensionStatuses()` 与版本化扩展事件快照。配置只读写 `~/.pi/pi-dstatus/config.json`，不读取项目级配置或其他扩展私有会话状态。
 
 ## 实现路径
 
-默认配置是一条包含核心组件的逻辑行；`/dstatus` 修改 `settings-model` 草稿，设置预览和实际 Footer 都调用 `renderer.renderStatusLines()`。`session`、`tokens`、`cache`、`cost`、`context`、每个 `quota` 与按 key 绑定的 `statuses` 都是独立组件：`context` 使用统一的 `QuotaWindow`（配额窗口）模型渲染上下文百分比进度条与 `XXK/XXXK`，每个 `quota` 通过 `StatusComponent.key` 绑定一个 provider / 模型 ID，并通过 `pi-dusage/updated` 消费对应额度；`statuses` 有 key 时只消费对应的 `getExtensionStatuses()` 条目，无 key 时显示全部。provider / 模型与 status 列表来自运行时动态发现；设置面板选中对象后按 `Enter` 进入上下文设置，再选择绑定模型、状态或切换显示选项。保存通过临时文件加 `rename` 原子替换，取消不写盘。
+默认配置是一条包含核心组件的逻辑行；`/dstatus` 修改 `settings-model` 草稿，设置预览和实际 Footer 都调用 `renderer.renderStatusLines()`。`fast` 组件订阅 `pi-dfast/updated`，只展示版本化公开状态，不读取 `pi-dfast` 配置。`session`、`tokens`、`cache`、`cost`、`context`、每个 `quota` 与按 key 绑定的 `statuses` 都是独立组件：`context` 使用统一的 `QuotaWindow`（配额窗口）模型渲染上下文百分比进度条与 `XXK/XXXK`，每个 `quota` 通过 `StatusComponent.key` 绑定一个 provider / 模型 ID，并通过 `pi-dusage/updated` 消费对应额度；`statuses` 有 key 时只消费对应的 `getExtensionStatuses()` 条目，无 key 时显示全部。provider / 模型与 status 列表来自运行时动态发现；设置面板选中对象后按 `Enter` 进入上下文设置，再选择绑定模型、状态或切换显示选项。保存通过临时文件加 `rename` 原子替换，取消不写盘。

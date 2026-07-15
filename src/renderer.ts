@@ -1,5 +1,6 @@
 import { visibleWidth } from "@earendil-works/pi-tui";
 import type { ComponentId, DStatusConfig, Overflow, QuotaSettings, StatusComponent } from "./config.js";
+import type { FastModeStatus } from "./fast.js";
 import type { SessionUsage } from "./usage.js";
 
 export interface GitStatus {
@@ -51,6 +52,7 @@ export interface RenderState {
   modelProvider?: string;
   showModelProvider?: boolean;
   thinking?: string;
+  fastMode?: FastModeStatus;
   quotas?: readonly QuotaWindow[];
   quotaGroups?: readonly QuotaGroup[];
   quotaSettings?: QuotaSettings;
@@ -75,6 +77,7 @@ const COLORS: Record<ComponentId, RGB> = {
   git: { r: 65, g: 105, b: 78 },
   model: { r: 100, g: 72, b: 125 },
   thinking: { r: 130, g: 88, b: 48 },
+  fast: { r: 115, g: 68, b: 142 },
   context: { r: 46, g: 110, b: 110 },
   tokens: { r: 103, g: 83, b: 54 },
   cache: { r: 84, g: 93, b: 55 },
@@ -93,7 +96,7 @@ const QUOTA_GROUP_COLORS: RGB[] = [
 ];
 
 export function componentLabel(id: ComponentId): string {
-  return ({ dir: "DIR", session: "SESSION", git: "GIT", model: "MODEL", thinking: "THINK", context: "CTX", tokens: "TOKENS", cache: "CACHE", cost: "COST", quota: "QUOTA", activity: "WORK", statuses: "STATUS" })[id];
+  return ({ dir: "DIR", session: "SESSION", git: "GIT", model: "MODEL", thinking: "THINK", fast: "FAST", context: "CTX", tokens: "TOKENS", cache: "CACHE", cost: "COST", quota: "QUOTA", activity: "WORK", statuses: "STATUS" })[id];
 }
 
 function basename(path: string): string {
@@ -261,6 +264,10 @@ function renderComponent(component: StatusComponent, state: RenderState): Render
         : [];
     case "thinking":
       return state.thinking ? [{ id, text: ` ◎ ${state.thinking}`, compactText: ` ◎ ${state.thinking}`, priority: 4, bg }] : [];
+    case "fast":
+      return state.fastMode?.enabled
+        ? [{ id, text: state.fastMode.active ? " ⚡ FAST" : " ⚡ FAST · inactive", compactText: " ⚡ FAST", priority: 4, bg }]
+        : [];
     case "context":
       return quotaSegments(state.quotas?.filter((quota) => quota.id === "context"), id, bg, 5);
     case "tokens": {

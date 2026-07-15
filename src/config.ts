@@ -12,7 +12,7 @@ export interface QuotaSettings {
 export interface ModelSettings {
   showProvider: boolean;
 }
-export type ComponentId = "dir" | "session" | "git" | "model" | "thinking" | "context" | "tokens" | "cache" | "cost" | "quota" | "activity" | "statuses";
+export type ComponentId = "dir" | "session" | "git" | "model" | "thinking" | "fast" | "context" | "tokens" | "cache" | "cost" | "quota" | "activity" | "statuses";
 
 export interface StatusComponent {
   id: ComponentId;
@@ -36,7 +36,7 @@ export interface DStatusConfig {
 export const CONFIG_DIR = join(homedir(), ".pi", "pi-dstatus");
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 export const OVERFLOWS: Overflow[] = ["wrap", "collapse", "hide"];
-export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "context", "quota", "activity", "statuses", "session", "tokens", "cache", "cost"];
+export const COMPONENT_IDS: ComponentId[] = ["dir", "git", "model", "thinking", "fast", "context", "quota", "activity", "statuses", "session", "tokens", "cache", "cost"];
 export const DEFAULT_QUOTA_PROVIDER_IDS = ["openai-codex", "zai-coding-cn", "minimax-cn"];
 
 export function defaultConfig(): DStatusConfig {
@@ -53,6 +53,7 @@ export function defaultConfig(): DStatusConfig {
           { id: "git" },
           { id: "model" },
           { id: "thinking" },
+          { id: "fast" },
           { id: "context" },
           { id: "quota", key: "openai-codex" },
           { id: "quota", key: "zai-coding-cn" },

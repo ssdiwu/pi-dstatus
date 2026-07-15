@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- 新增独立 `fast` Footer 组件，通过 `pi-dfast/updated` 公开快照显示 `FAST` 或 `FAST · inactive`，关闭时隐藏。
+
 ## [0.0.2] - 2026-07-14
 
 ### Added

@@ -1,5 +1,6 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { loadConfig, saveConfig, type DStatusConfig } from "../src/config.js";
+import { parseDFastSnapshot, type FastModeStatus } from "../src/fast.js";
 import { readGitStatus } from "../src/git.js";
 import { aggregateSessionUsage, appendAssistantUsage } from "../src/usage.js";
 import { renderStatusLines, type ActivityStatus, type QuotaGroup, type RenderState } from "../src/renderer.js";
@@ -64,15 +65,23 @@ export default function piDStatus(pi: ExtensionAPI): void {
   let readExtensionStatuses: () => ReadonlyMap<string, string> = () => latestStatuses;
   let currentCtx: ExtensionContext | undefined;
   let quotaGroups: QuotaGroup[] = [];
+  let fastMode: FastModeStatus | undefined;
   let dusageSubscribed = false;
+  let dfastSubscribed = false;
   let cleanupSession: () => void = () => {};
 
   const requestRender = () => tui?.requestRender();
   const hasQuotaComponent = () => config.lines.some((line) => line.components.some((component) => component.id === "quota"));
+  const hasFastComponent = () => config.lines.some((line) => line.components.some((component) => component.id === "fast"));
   const setDusageSubscription = (enabled: boolean) => {
     if (enabled === dusageSubscribed) return;
     pi.events?.emit(enabled ? "pi-dusage/subscribe" : "pi-dusage/unsubscribe", { version: 1, consumerId: "pi-dstatus" });
     dusageSubscribed = enabled;
+  };
+  const setDFastSubscription = (enabled: boolean) => {
+    if (enabled === dfastSubscribed) return;
+    pi.events?.emit(enabled ? "pi-dfast/subscribe" : "pi-dfast/unsubscribe", { version: 1, consumerId: "pi-dstatus" });
+    dfastSubscribed = enabled;
   };
   const setActivity = (next: ActivityStatus) => { activity = next; activityFrame = 0; requestRender(); };
 
@@ -102,6 +111,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
       modelProvider: ctx.model?.provider,
       showModelProvider: config.model?.showProvider,
       thinking: pi.getThinkingLevel(),
+      fastMode,
       quotas: contextWindow > 0 && usage?.tokens !== null && usage?.tokens !== undefined
         ? [{ id: "context", used: Math.max(0, usage.tokens), limit: contextWindow }]
         : [],
@@ -124,9 +134,11 @@ export default function piDStatus(pi: ExtensionAPI): void {
       });
       if (!next) return;
       const quotaWasEnabled = hasQuotaComponent();
+      const fastWasEnabled = hasFastComponent();
       config = next;
       await saveConfig(config);
       if (quotaWasEnabled !== hasQuotaComponent()) setDusageSubscription(hasQuotaComponent());
+      if (fastWasEnabled !== hasFastComponent()) setDFastSubscription(hasFastComponent());
       requestRender();
       ctx.ui.notify("pi-dstatus 配置已保存", "info");
     },
@@ -147,6 +159,12 @@ export default function piDStatus(pi: ExtensionAPI): void {
     quotaGroups = parseDusageSnapshot(data);
     requestRender();
   });
+  pi.events?.on("pi-dfast/updated", (data) => {
+    const next = parseDFastSnapshot(data);
+    if (!next) return;
+    fastMode = next;
+    requestRender();
+  });
 
   pi.on("session_start", (_event, ctx) => {
     cleanupSession();
@@ -155,9 +173,11 @@ export default function piDStatus(pi: ExtensionAPI): void {
     latestStatuses = new Map();
     readExtensionStatuses = () => latestStatuses;
     quotaGroups = [];
+    fastMode = undefined;
     sessionUsage = aggregateSessionUsage(ctx.sessionManager.getEntries());
     if (ctx.mode !== "tui") return;
     setDusageSubscription(hasQuotaComponent());
+    setDFastSubscription(hasFastComponent());
     ctx.ui.setWorkingVisible(false);
     let disposed = false;
     const gitTimer = setInterval(() => void refreshGit(), 1500);
@@ -172,7 +192,9 @@ export default function piDStatus(pi: ExtensionAPI): void {
       clearInterval(gitTimer);
       clearInterval(spinnerTimer);
       setDusageSubscription(false);
+      setDFastSubscription(false);
       quotaGroups = [];
+      fastMode = undefined;
       sessionUsage = undefined;
       if (tui) tui = undefined;
       if (currentCtx === ctx) currentCtx = undefined;
@@ -207,6 +229,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
     readExtensionStatuses = () => latestStatuses;
     git = undefined;
     sessionUsage = undefined;
+    fastMode = undefined;
     tui = undefined;
   });
 }

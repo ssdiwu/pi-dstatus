@@ -110,6 +110,13 @@ describe("status renderer", () => {
     expect(filtered.join("\n")).not.toContain("1 worker active");
   });
 
+  it("renders enabled Fast Mode and distinguishes inactive state", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "fast" as const }] }] };
+    expect(renderStatusLines(config, { ...state, fastMode: { enabled: true, active: true } }, 120, plain).join("\n")).toContain("FAST");
+    expect(renderStatusLines(config, { ...state, fastMode: { enabled: true, active: false } }, 120, plain).join("\n")).toContain("inactive");
+    expect(renderStatusLines(config, { ...state, fastMode: { enabled: false, active: false } }, 120, plain)).toEqual([]);
+  });
+
   it("renders all default data and removes empty statuses", () => {
     const lines = renderStatusLines(defaultConfig(), state, 200, plain);
     expect(lines.length).toBeGreaterThan(0);
@@ -164,7 +171,7 @@ describe("status renderer", () => {
       quotas: [],
       statuses: new Map<string, string>(),
     };
-    for (const id of ["dir", "session", "git", "model", "thinking", "context", "tokens", "cache", "cost", "quota", "activity", "statuses"] as const) {
+    for (const id of ["dir", "session", "git", "model", "thinking", "fast", "context", "tokens", "cache", "cost", "quota", "activity", "statuses"] as const) {
       const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id }] }] };
       expect(renderStatusLines(config, missing, 80, plain), id).toEqual([]);
     }

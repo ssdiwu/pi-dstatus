@@ -1,11 +1,11 @@
 # Pi Footer 公开数据源审查
 
-> 审查对象：Pi `0.80.6`（本机安装版本）与当前 `pi-dstatus`。
-> 审查日期：2026-07-14。
+> 审查对象：Pi `0.80.7`（本机安装版本）与当前 `pi-dstatus`。
+> 审查日期：2026-07-15。
 
 ## 结论
 
-`pi-dstatus` 当前已经覆盖了 Footer 最重要的动态数据：目录、session name、Git、模型/provider、thinking level、context usage、累计 token/cache/cost、工作状态、扩展公开 status，以及 `pi-dusage` 的独立额度快照。
+`pi-dstatus` 当前已经覆盖了 Footer 最重要的动态数据：目录、session name、Git、模型/provider、thinking level、Fast Mode、context usage、累计 token/cache/cost、工作状态、扩展公开 status，以及 `pi-dusage` 的独立额度快照。
 
 Pi 没有提供一个可直接复用的“默认 Footer 状态快照”接口，但默认 Footer 使用的剩余信息仍然可以通过公开扩展 API 重建：
 
@@ -28,6 +28,7 @@ Pi 没有提供一个可直接复用的“默认 Footer 状态快照”接口，
 | model context window | `ExtensionContext.model.contextWindow` 或 `getContextUsage().contextWindow` | 已通过 `getContextUsage()` 接入 `context` | 后者包含 Pi 对 compaction 的有效估算，应优先使用 |
 | context tokens/percent | `ctx.getContextUsage()` | 已接入 `context` | `tokens` / `percent` 在 compaction 后可能为 `null`，当前实现会隐藏未知 context，避免误报 0% |
 | thinking level | `pi.getThinkingLevel()` 与 `thinking_level_select` | 已接入 `thinking` | 可继续使用 |
+| Fast Mode | `pi-dfast/updated` 版本化公开快照 | 已接入 `fast` | 只展示本地开关与注入资格，不宣称服务端确认 |
 | session name | `ctx.sessionManager.getSessionName()` + `session_info_changed` | 已接入 `session` | 空名称隐藏，事件触发刷新 |
 | input/output tokens | `ctx.sessionManager.getEntries()` → assistant `message.usage` | 已接入 `tokens` | 按所有 session entries 累计 |
 | cache read/write | 同上 | 已接入 `cache` | 按所有 assistant messages 累计 |
@@ -100,6 +101,7 @@ Pi 没有提供一个可直接复用的“默认 Footer 状态快照”接口，
 - `turn_start` / `turn_end`
 - `tool_execution_start` / `tool_execution_end`
 - `pi-dusage/updated`
+- `pi-dfast/updated`
 - Git `onBranchChange()`
 
 ### 若接入 session name

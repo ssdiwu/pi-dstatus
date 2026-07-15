@@ -34,7 +34,7 @@ describe("settings model", () => {
     state = moveComponent(state, -1);
     expect(state.draft.lines[0]!.components.at(-2)?.id).toBe("statuses");
     state = removeSelectedComponent(state);
-    expect(state.draft.lines[0]!.components).toHaveLength(10);
+    expect(state.draft.lines[0]!.components).toHaveLength(11);
   });
 
   it("replaces the selected component", () => {
@@ -51,12 +51,12 @@ describe("settings model", () => {
 
   it("updates quota display settings and selected provider component", () => {
     let state = createSettingsState(defaultConfig());
-    state = { ...state, selectedComponent: 5 };
+    state = { ...state, selectedComponent: 6 };
     state = cycleQuotaWindow(state);
     state = toggleQuotaReset(state);
     state = setSelectedQuotaProvider(state, "zai-coding-cn");
     expect(state.draft.quota).toEqual({ window: "all", showReset: true });
-    expect(state.draft.lines[0]!.components[5]).toEqual({ id: "quota", key: "zai-coding-cn" });
+    expect(state.draft.lines[0]!.components[6]).toEqual({ id: "quota", key: "zai-coding-cn" });
   });
 
   it("binds a statuses component to one status key", () => {
