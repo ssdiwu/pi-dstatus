@@ -4,9 +4,19 @@
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-07-16
+
 ### Added
 
 - 新增独立 `fast` Footer 组件，通过 `pi-dfast/updated` 公开快照显示 `FAST` 或 `FAST · inactive`，关闭时隐藏。
+
+### Changed
+
+- `/dstatus` 新增组件默认插入当前组件右侧；组件在行首或行尾继续移动时可跨逻辑行，并保留空行。
+
+### Fixed
+
+- `/dstatus` 现在可以删除最后一个逻辑行；运行中的 Footer 每分钟自动重读配置，同步外部排布修改。
 
 ## [0.0.2] - 2026-07-14
 

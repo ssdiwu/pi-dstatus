@@ -25,11 +25,11 @@ pi install .
 ## 使用
 
 - `/dstatus`：打开设置面板。
-- 配置文件：`~/.pi/pi-dstatus/config.json`。
+- 配置文件：`~/.pi/pi-dstatus/config.json`；Footer 在运行期间每分钟重读一次，外部修改会自动同步。
 - 默认一条逻辑行：目录/Git/模型/思考等级/Fast Mode（快速模式）/上下文/多个独立 `quota` 用量查询/工具或工作动画/所有当前非空扩展状态；可按需加入会话名、输入输出 token、缓存命中率、费用等独立组件。
 - 当前模型组件同时显示模型名与 provider，例如 `(openai-codex)gpt-5.6-luna`；在 `/dstatus` 选中模型组件后按 `Enter`，可切换 provider 显示；`context` 独立显示模型上下文窗口；每个 `quota` 组件订阅并显示一个 `pi-dusage` provider / 模型额度，分别渲染为独立 Powerline 色块。上下文示例：`87% ━━━━━━━━━━━━━━━━━─── · 324K/372K`。
 
-逻辑行可以新增、删除、排序，并编排行内组件；`session`、`tokens`、`cache`、`cost`、`fast`、`context`、每个 `quota` 和按 key 绑定的 `statuses` 都是独立组件。`session` 显示 Pi session name；`tokens` 显示输入、输出与合计 token；`cache` 显示累计缓存读写与累计命中率；`cost` 显示累计费用。安装 `pi-dfast` 后，`fast` 组件通过 `pi-dfast/updated` 公开快照显示当前会话的 `FAST` 或 `FAST · inactive`，关闭时隐藏。安装 `pi-dusage` 后，provider / 模型额度会从结构化快照动态发现；选中 `quota` 或 `statuses` 组件后按 `Enter` 进入设置，再选择绑定模型或状态。无 key 的 `statuses` 仍表示显示全部状态。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
+逻辑行可以新增、删除（包括最后一行）和排序，并编排行内组件；`session`、`tokens`、`cache`、`cost`、`fast`、`context`、每个 `quota` 和按 key 绑定的 `statuses` 都是独立组件。`session` 显示 Pi session name；`tokens` 显示输入、输出与合计 token；`cache` 显示累计缓存读写与累计命中率；`cost` 显示累计费用。安装 `pi-dfast` 后，`fast` 组件通过 `pi-dfast/updated` 公开快照显示当前会话的 `FAST` 或 `FAST · inactive`，关闭时隐藏。安装 `pi-dusage` 后，provider / 模型额度会从结构化快照动态发现；选中 `quota` 或 `statuses` 组件后按 `Enter` 进入设置，再选择绑定模型或状态。无 key 的 `statuses` 仍表示显示全部状态。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
 
 已有配置不会被自动改写布局；升级后可在 `/dstatus` 中新增“快速模式”组件。
 
@@ -41,7 +41,7 @@ pi install .
 2. 执行 `pi install npm:pi-dstatus`，或在仓库目录用 `pi -e ./extensions/index.ts` 临时加载。
 3. 启动 `pi`，观察 Footer；输入 `/dstatus`。
 4. 用方向键选择行/组件，使用界面显示的快捷键新增、删除、排序、编辑溢出策略。
-5. 使用 `↑↓`/`←→` 选择并聚焦行或组件，按 `Enter` 进入当前对象设置；使用 `a`/`d` 增删逻辑行，`c` 修改组件，`n` 新增组件，`x` 删除组件，`[`/`]` 移动当前聚焦对象，`u`/`j` 移动逻辑行，`s` 保存，`Esc` 返回或取消。
+5. 使用 `↑↓`/`←→` 选择并聚焦行或组件，按 `Enter` 进入当前对象设置；使用 `a`/`d` 增删逻辑行，`c` 修改组件，`n` 在当前组件右侧新增组件，`x` 删除组件，`[`/`]` 移动当前聚焦对象（组件在行首或行尾继续移动时跨行），`u`/`j` 移动逻辑行，`s` 保存，`Esc` 返回或取消。
 6. 输入 `/dstatus` 后确认预览、保存与取消行为；再调整终端宽度验证 wrap。
 
 ## 目录导航

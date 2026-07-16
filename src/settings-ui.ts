@@ -168,7 +168,7 @@ export async function openSettings(
         const preview = renderStatusLines(state.draft, getRenderState(), Math.max(20, width - 2), (segments) => segments.map((s) => s.text.trim()).join(" | "));
         lines.push(...(preview.length ? preview.map((line) => theme.fg("text", `  ${line}`)) : [theme.fg("dim", "  (空) ")]));
         lines.push("");
-        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  Enter 设置  a 新行  c 修改  n 新增  x 删除  [ ] 移动当前项  u/j 移动行  s 保存  Esc 返回/取消"));
+        lines.push(theme.fg("dim", "↑↓ 选行并聚焦行  ←→ 选组件并聚焦组件  Enter 设置  a 新行  d 删除行  c 修改  n 新增（右侧插入）  x 删除组件  [ ] 移动项（组件可跨行）  u/j 移动行  s 保存  Esc 返回/取消"));
         return lines.map((line) => truncateToWidth(line, width, ""));
       },
       handleInput(data: string): void {

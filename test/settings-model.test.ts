@@ -12,6 +12,8 @@ describe("settings model", () => {
     expect(state.selectedLine).toBe(0);
     state = removeSelectedLine(state);
     expect(state.draft.lines).toHaveLength(1);
+    state = removeSelectedLine(state);
+    expect(state.draft.lines).toHaveLength(0);
     expect(saved.lines).toHaveLength(1);
   });
 
@@ -27,14 +29,37 @@ describe("settings model", () => {
     expect(state.focus).toBe("component");
   });
 
-  it("edits component order and lifecycle", () => {
-    let state = createSettingsState(defaultConfig());
+  it("inserts a component to the right of the current selection", () => {
+    const config = defaultConfig();
+    config.lines[0]!.components = [{ id: "dir" }, { id: "git" }];
+    let state = createSettingsState(config);
     state = addComponent(state, "statuses");
-    expect(state.draft.lines[0]!.components.at(-1)?.id).toBe("statuses");
-    state = moveComponent(state, -1);
-    expect(state.draft.lines[0]!.components.at(-2)?.id).toBe("statuses");
+    expect(state.draft.lines[0]!.components.map((component) => component.id)).toEqual(["dir", "statuses", "git"]);
+    expect(state.selectedComponent).toBe(1);
     state = removeSelectedComponent(state);
-    expect(state.draft.lines[0]!.components).toHaveLength(11);
+    expect(state.draft.lines[0]!.components).toHaveLength(2);
+  });
+
+  it("moves a component across lines and retains an empty source line", () => {
+    let state = createSettingsState({
+      ...defaultConfig(),
+      lines: [
+        { id: "first", components: [{ id: "dir" }] },
+        { id: "second", components: [{ id: "git" }, { id: "model" }] },
+      ],
+    });
+    state = moveComponent(state, 1);
+    expect(state.draft.lines.map((line) => line.components.map((component) => component.id))).toEqual([
+      [],
+      ["dir", "git", "model"],
+    ]);
+    expect([state.selectedLine, state.selectedComponent]).toEqual([1, 0]);
+    state = moveComponent(state, -1);
+    expect(state.draft.lines.map((line) => line.components.map((component) => component.id))).toEqual([
+      ["dir"],
+      ["git", "model"],
+    ]);
+    expect([state.selectedLine, state.selectedComponent]).toEqual([0, 0]);
   });
 
   it("replaces the selected component", () => {

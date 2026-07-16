@@ -1,11 +1,13 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { loadConfig, saveConfig, type DStatusConfig } from "../src/config.js";
+import { loadConfig, loadConfigAsync, saveConfig, type DStatusConfig } from "../src/config.js";
 import { parseDFastSnapshot, type FastModeStatus } from "../src/fast.js";
 import { readGitStatus } from "../src/git.js";
 import { aggregateSessionUsage, appendAssistantUsage } from "../src/usage.js";
 import { renderStatusLines, type ActivityStatus, type QuotaGroup, type RenderState } from "../src/renderer.js";
 import type { SessionUsage } from "../src/usage.js";
 import { openSettings } from "../src/settings-ui.js";
+
+export const CONFIG_REFRESH_INTERVAL_MS = 60_000;
 
 function renderPlainSegments(segments: Array<{ text: string }>): string {
   return segments.map((segment) => segment.text.trim()).join(" | ");
@@ -68,11 +70,14 @@ export default function piDStatus(pi: ExtensionAPI): void {
   let fastMode: FastModeStatus | undefined;
   let dusageSubscribed = false;
   let dfastSubscribed = false;
+  let settingsOpen = false;
+  let configRefreshInFlight = false;
   let cleanupSession: () => void = () => {};
 
   const requestRender = () => tui?.requestRender();
   const hasQuotaComponent = () => config.lines.some((line) => line.components.some((component) => component.id === "quota"));
   const hasFastComponent = () => config.lines.some((line) => line.components.some((component) => component.id === "fast"));
+  const configsEqual = (left: DStatusConfig, right: DStatusConfig) => JSON.stringify(left) === JSON.stringify(right);
   const setDusageSubscription = (enabled: boolean) => {
     if (enabled === dusageSubscribed) return;
     pi.events?.emit(enabled ? "pi-dusage/subscribe" : "pi-dusage/unsubscribe", { version: 1, consumerId: "pi-dstatus" });
@@ -84,6 +89,29 @@ export default function piDStatus(pi: ExtensionAPI): void {
     dfastSubscribed = enabled;
   };
   const setActivity = (next: ActivityStatus) => { activity = next; activityFrame = 0; requestRender(); };
+
+  function updateConfig(next: DStatusConfig): boolean {
+    if (configsEqual(config, next)) return false;
+    const quotaWasEnabled = hasQuotaComponent();
+    const fastWasEnabled = hasFastComponent();
+    config = next;
+    if (quotaWasEnabled !== hasQuotaComponent()) setDusageSubscription(hasQuotaComponent());
+    if (fastWasEnabled !== hasFastComponent()) setDFastSubscription(hasFastComponent());
+    requestRender();
+    return true;
+  }
+
+  async function refreshConfig(): Promise<void> {
+    const ctx = currentCtx;
+    if (!ctx || ctx.mode !== "tui" || settingsOpen || configRefreshInFlight) return;
+    configRefreshInFlight = true;
+    try {
+      const next = await loadConfigAsync();
+      if (currentCtx === ctx) updateConfig(next);
+    } finally {
+      configRefreshInFlight = false;
+    }
+  }
 
   async function refreshGit(): Promise<void> {
     const ctx = currentCtx;
@@ -128,19 +156,20 @@ export default function piDStatus(pi: ExtensionAPI): void {
     description: "Configure the multi-line dstatus footer",
     handler: async (_args: string, ctx: ExtensionCommandContext) => {
       latestStatuses = new Map(readExtensionStatuses());
-      const next = await openSettings(ctx, config, () => {
-        latestStatuses = new Map(readExtensionStatuses());
-        return renderState(ctx, latestStatuses);
-      });
-      if (!next) return;
-      const quotaWasEnabled = hasQuotaComponent();
-      const fastWasEnabled = hasFastComponent();
-      config = next;
-      await saveConfig(config);
-      if (quotaWasEnabled !== hasQuotaComponent()) setDusageSubscription(hasQuotaComponent());
-      if (fastWasEnabled !== hasFastComponent()) setDFastSubscription(hasFastComponent());
-      requestRender();
-      ctx.ui.notify("pi-dstatus 配置已保存", "info");
+      settingsOpen = true;
+      try {
+        const next = await openSettings(ctx, config, () => {
+          latestStatuses = new Map(readExtensionStatuses());
+          return renderState(ctx, latestStatuses);
+        });
+        if (!next) return;
+        updateConfig(next);
+        await saveConfig(config);
+        ctx.ui.notify("pi-dstatus 配置已保存", "info");
+      } finally {
+        settingsOpen = false;
+        void refreshConfig();
+      }
     },
   });
 
@@ -168,6 +197,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
 
   pi.on("session_start", (_event, ctx) => {
     cleanupSession();
+    config = loadConfig();
     git = undefined;
     currentCtx = ctx;
     latestStatuses = new Map();
@@ -181,6 +211,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
     ctx.ui.setWorkingVisible(false);
     let disposed = false;
     const gitTimer = setInterval(() => void refreshGit(), 1500);
+    const configTimer = setInterval(() => void refreshConfig(), CONFIG_REFRESH_INTERVAL_MS);
     const spinnerTimer = setInterval(() => {
       if (!activity.active) return;
       activityFrame = (activityFrame + 1) % 5;
@@ -190,6 +221,7 @@ export default function piDStatus(pi: ExtensionAPI): void {
       if (disposed) return;
       disposed = true;
       clearInterval(gitTimer);
+      clearInterval(configTimer);
       clearInterval(spinnerTimer);
       setDusageSubscription(false);
       setDFastSubscription(false);

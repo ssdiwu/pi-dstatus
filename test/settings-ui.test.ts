@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { defaultConfig } from "../src/config.js";
 import { openSettings } from "../src/settings-ui.js";
 import piDStatus from "../extensions/index.js";
@@ -35,6 +35,9 @@ describe("/dstatus settings integration", () => {
     await Promise.resolve();
     expect(component.render(100).join("\n")).toContain("preview");
     expect(component.render(100).join("\n")).toContain("MCP: ready");
+    expect(component.render(200).join("\n")).toContain("d 删除行");
+    expect(component.render(200).join("\n")).toContain("n 新增（右侧插入）");
+    expect(component.render(200).join("\n")).toContain("组件可跨行");
     component.handleInput("a");
     component.handleInput("s");
     const saved = await promise;
@@ -348,5 +351,62 @@ describe("/dstatus settings integration", () => {
     const notifications: string[] = [];
     await command.handler("", { mode: "print", ui: { notify: (message: string) => notifications.push(message) } });
     expect(notifications.join("\n")).toContain("TUI");
+  });
+
+  it("reloads an externally changed layout every minute", async () => {
+    vi.useFakeTimers();
+    let externalConfig = defaultConfig();
+    vi.resetModules();
+    vi.doMock("../src/config.js", async () => {
+      const actual = await vi.importActual<typeof import("../src/config.js")>("../src/config.js");
+      return {
+        ...actual,
+        loadConfig: () => externalConfig,
+        loadConfigAsync: async () => externalConfig,
+        saveConfig: async () => undefined,
+      };
+    });
+
+    try {
+      const { CONFIG_REFRESH_INTERVAL_MS, default: createExtension } = await import("../extensions/index.js");
+      let sessionStart: any;
+      let footerFactory: any;
+      const pi: any = {
+        registerCommand: () => undefined,
+        on: (name: string, handler: any) => { if (name === "session_start") sessionStart = handler; },
+        events: { on: () => undefined, emit: () => undefined },
+        getThinkingLevel: () => "off",
+        exec: () => new Promise(() => undefined),
+      };
+      createExtension(pi);
+      const ctx: any = {
+        mode: "tui",
+        cwd: "/tmp",
+        model: { id: "provider/model" },
+        getContextUsage: () => ({ tokens: 10, contextWindow: 128_000 }),
+        sessionManager: { getSessionName: () => undefined, getEntries: () => [] },
+        ui: {
+          setWorkingVisible: () => undefined,
+          setFooter: (factory: any) => { footerFactory = factory; },
+        },
+      };
+      sessionStart({}, ctx);
+      const requestRender = vi.fn();
+      const footer = footerFactory({ requestRender }, theme, {
+        getExtensionStatuses: () => new Map(),
+        onBranchChange: () => () => undefined,
+      });
+
+      externalConfig = { ...defaultConfig(), lines: [] };
+      await vi.advanceTimersByTimeAsync(CONFIG_REFRESH_INTERVAL_MS);
+
+      expect(requestRender).toHaveBeenCalled();
+      expect(footer.render(200)).toEqual([]);
+      footer.dispose();
+    } finally {
+      vi.doUnmock("../src/config.js");
+      vi.useRealTimers();
+      vi.resetModules();
+    }
   });
 });

@@ -35,7 +35,6 @@ export function addLine(state: SettingsState): SettingsState {
 }
 
 export function removeSelectedLine(state: SettingsState): SettingsState {
-  if (state.draft.lines.length <= 1) return state;
   const lines = state.draft.lines.filter((_, index) => index !== state.selectedLine);
   return { ...state, draft: { ...state.draft, lines }, selectedLine: Math.min(state.selectedLine, lines.length - 1), selectedComponent: 0, focus: "line" };
 }
@@ -53,10 +52,11 @@ export function addComponent(state: SettingsState, id?: ComponentId): SettingsSt
   if (!line) return state;
   const existing = new Set(line.components.map((component) => component.id));
   const next = id ?? COMPONENT_IDS.find((candidate) => candidate === "quota" || candidate === "statuses" || !existing.has(candidate)) ?? "statuses";
+  const insertionIndex = Math.min(state.selectedComponent + 1, line.components.length);
   const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine
-    ? { ...candidate, components: [...candidate.components, { id: next }] }
+    ? { ...candidate, components: [...candidate.components.slice(0, insertionIndex), { id: next }, ...candidate.components.slice(insertionIndex)] }
     : candidate);
-  return { ...state, draft: { ...state.draft, lines }, selectedComponent: line.components.length, focus: "component" };
+  return { ...state, draft: { ...state.draft, lines }, selectedComponent: insertionIndex, focus: "component" };
 }
 
 export function removeSelectedComponent(state: SettingsState): SettingsState {
@@ -79,13 +79,35 @@ export function replaceSelectedComponent(state: SettingsState, id: ComponentId):
 
 export function moveComponent(state: SettingsState, direction: -1 | 1): SettingsState {
   const line = selectedLine(state);
-  if (!line) return state;
+  const component = line?.components[state.selectedComponent];
+  if (!line || !component) return state;
   const target = state.selectedComponent + direction;
-  if (target < 0 || target >= line.components.length) return state;
-  const components = [...line.components];
-  [components[state.selectedComponent], components[target]] = [components[target]!, components[state.selectedComponent]!];
-  const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
-  return { ...state, draft: { ...state.draft, lines }, selectedComponent: target, focus: "component" };
+  if (target >= 0 && target < line.components.length) {
+    const components = [...line.components];
+    [components[state.selectedComponent], components[target]] = [components[target]!, components[state.selectedComponent]!];
+    const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine ? { ...candidate, components } : candidate);
+    return { ...state, draft: { ...state.draft, lines }, selectedComponent: target, focus: "component" };
+  }
+
+  const targetLineIndex = state.selectedLine + direction;
+  const targetLine = state.draft.lines[targetLineIndex];
+  if (!targetLine) return state;
+  const sourceComponents = line.components.filter((_, index) => index !== state.selectedComponent);
+  const targetComponents = direction === -1
+    ? [...targetLine.components, component]
+    : [component, ...targetLine.components];
+  const lines = state.draft.lines.map((candidate, index) => index === state.selectedLine
+    ? { ...candidate, components: sourceComponents }
+    : index === targetLineIndex
+      ? { ...candidate, components: targetComponents }
+      : candidate);
+  return {
+    ...state,
+    draft: { ...state.draft, lines },
+    selectedLine: targetLineIndex,
+    selectedComponent: direction === -1 ? targetComponents.length - 1 : 0,
+    focus: "component",
+  };
 }
 
 export function selectLine(state: SettingsState, direction: -1 | 1): SettingsState {
