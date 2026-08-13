@@ -11,7 +11,23 @@ describe("configuration", () => {
     expect(config.model).toEqual({ showProvider: true });
     expect(config.quota).toEqual({ window: "5h", showReset: false });
     expect(config.lines.map((line) => line.components.map((component) => component.id))).toEqual([
-      ["dir", "git", "model", "thinking", "fast", "context", "quota", "quota", "quota", "activity", "statuses"],
+      ["dir", "git", "model", "thinking", "fast", "context", "quota", "quota", "quota", "quota", "activity", "statuses"],
+    ]);
+    expect(config.lines[0]!.components.filter((component) => component.id === "quota").map((component) => component.key)).toEqual([
+      "openai-codex", "zai-coding-cn", "minimax-cn", "xai",
+    ]);
+  });
+
+  it("does not inject xai while migrating an existing unbound quota layout", () => {
+    const config = validateConfig({
+      version: 1,
+      overflow: "wrap",
+      lines: [{ id: "legacy", components: [{ id: "quota" }] }],
+    });
+    expect(config.lines[0]!.components).toEqual([
+      { id: "quota", key: "openai-codex" },
+      { id: "quota", key: "zai-coding-cn" },
+      { id: "quota", key: "minimax-cn" },
     ]);
   });
 

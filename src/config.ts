@@ -58,6 +58,7 @@ export function defaultConfig(): DStatusConfig {
           { id: "quota", key: "openai-codex" },
           { id: "quota", key: "zai-coding-cn" },
           { id: "quota", key: "minimax-cn" },
+          { id: "quota", key: "xai" },
           { id: "activity" },
           { id: "statuses" },
         ],

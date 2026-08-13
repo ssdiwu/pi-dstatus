@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- 新默认 Footer 布局加入 `xai` quota 组件；既有用户配置不自动改写，可在 `/dstatus` 中手动绑定动态发现的 xAI provider。
+
+### Changed
+
+- quota 的 `5h` 窗口范围在 provider 没有短窗口时，改为显示第一个可用窗口，避免仅有 week 的 xAI 配额被隐藏。
+
 ## [0.0.3] - 2026-07-16
 
 ### Added

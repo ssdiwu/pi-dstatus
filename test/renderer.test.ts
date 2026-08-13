@@ -84,6 +84,18 @@ describe("status renderer", () => {
     expect(segments[3]!.text).toContain("Z.ai 5h 99%");
   });
 
+  it("falls back to a provider's available week when 5h mode has no short window", () => {
+    const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "quota" as const, key: "xai" }] }], quota: { window: "5h" as const, showReset: false } };
+    const segments = collectSegments(config.lines[0]!.components, {
+      ...state,
+      quotaSettings: config.quota,
+      quotaGroups: [{ id: "xai", label: "xAI", windows: [{ id: "week", label: "week", remainingPercent: 84 }] }],
+    });
+    expect(segments).toHaveLength(1);
+    expect(segments[0]?.id).toBe("quota:xai");
+    expect(segments[0]?.text).toContain("xAI week 84%");
+  });
+
   it("renders session name and aggregated usage with a compact form", () => {
     const config = { version: 1 as const, overflow: "wrap" as const, lines: [{ id: "only", components: [{ id: "session" as const }, { id: "tokens" as const }, { id: "cache" as const }, { id: "cost" as const }] }] };
     const lines = renderStatusLines(config, state, 200, plain);

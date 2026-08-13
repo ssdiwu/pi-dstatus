@@ -16,6 +16,7 @@ const quotaProviderNames: Record<string, string> = {
   "openai-codex": "Codex",
   "zai-coding-cn": "z.ai Coding CN",
   "minimax-cn": "MiniMax CN",
+  "xai": "xAI / Grok",
 };
 
 function sanitizePickerText(value: string): string {

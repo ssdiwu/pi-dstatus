@@ -203,6 +203,13 @@ function isFiveHourWindow(quota: QuotaWindow): boolean {
   return quota.id === "5h" || /(^|[-_\s])5h($|[-_\s])/i.test(`${quota.id} ${quota.label ?? ""}`);
 }
 
+// “5h” 是展示偏好而不是将没有短窗的 provider 隐藏；例如 xAI 目前只发布 week。
+function preferredQuotaWindows(windows: readonly QuotaWindow[], mode: QuotaSettings["window"]): readonly QuotaWindow[] {
+  if (mode === "all") return windows;
+  const fiveHourWindows = windows.filter(isFiveHourWindow);
+  return fiveHourWindows.length > 0 ? fiveHourWindows : windows.slice(0, 1);
+}
+
 function quotaGroupColor(id: string): RGB {
   const hash = Array.from(id).reduce((total, character) => total + character.charCodeAt(0), 0);
   return QUOTA_GROUP_COLORS[hash % QUOTA_GROUP_COLORS.length]!;
@@ -224,8 +231,7 @@ function quotaGroupSegments(groups: readonly QuotaGroup[] | undefined, id: Compo
     if (providerId !== undefined && group.id !== providerId) return [];
     const label = compactQuotaLabel(group);
     if (!label) return [];
-    const windows = group.windows
-      .filter((quota) => settings.window === "all" || isFiveHourWindow(quota))
+    const windows = preferredQuotaWindows(group.windows, settings.window)
       .map((quota) => settings.showReset ? quota : { ...quota, resetLabel: undefined })
       .map(renderQuotaWindow)
       .filter((display): display is QuotaDisplay => display !== undefined);
