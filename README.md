@@ -6,7 +6,7 @@
 
 ## 安装
 
-安装已发布的 `0.0.2` 版本：
+安装 npm 当前发布版本；具体版本以 npm registry 与 `package.json` 的发布记录为准：
 
 ```bash
 pi install npm:pi-dstatus
@@ -49,7 +49,7 @@ pi install .
 - `extensions/`：Pi Extension（扩展）入口，注册 `/dstatus` 并安装自定义 Footer。
 - `src/`：配置、渲染、设置状态模型、设置 UI 与 session usage 聚合。
 - `test/`：配置、渲染、设置交互与 usage 聚合的行为测试。
-- `doc/`：项目文档地图与 Pi 公开 Footer 数据审查；当前保持小项目平铺结构。
+- `doc/`：文档入口、决策档案与来源材料（`doc/decisions/`、`doc/references/`）；当前保持小项目平铺结构。
 
 ## 开发
 

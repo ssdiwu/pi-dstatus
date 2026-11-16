@@ -2,8 +2,10 @@
 
 > 审查对象：Pi `0.80.7`（本机安装版本）与当前 `pi-dstatus`。
 > 审查日期：2026-07-15。
+>
+> 本文件是来源与验证材料，不是现行权威。字段接入与否的决策见 `../decisions/footer-data-scope.md`；当前组件清单与布局语义见 `../../README.md`「使用」。
 
-## 结论
+## 审查结论（当时）
 
 `pi-dstatus` 当前已经覆盖了 Footer 最重要的动态数据：目录、session name、Git、模型/provider、thinking level、Fast Mode、context usage、累计 token/cache/cost、工作状态、扩展公开 status，以及 `pi-dusage` 的独立额度快照。
 
@@ -14,7 +16,7 @@ Pi 没有提供一个可直接复用的“默认 Footer 状态快照”接口，
 - cache hit rate：由当前 assistant `usage` 计算；
 - 可用 provider 数：Footer factory 收到的 `footerData.getAvailableProviderCount()`。
 
-本次已按上述边界新增独立的 `session`、`tokens`、`cache` 与 `cost` 可配置组件；`available provider count` 仍只作为模型组件的辅助信息，不单独占一个色块。`model.cost` 是价格元数据，不是实际消费，不能替代 session usage。缓存命中率与缓存读写均按当前 session 累计统计。
+`model.cost` 是价格元数据，不是实际消费，不能替代 session usage。缓存命中率与缓存读写均按当前 session 累计统计。
 
 ## Pi 公开接口盘点
 
@@ -89,100 +91,3 @@ Pi 没有提供一个可直接复用的“默认 Footer 状态快照”接口，
 6. 通过 `footerData.getExtensionStatuses()` 展示公开扩展状态。
 
 `pi-dstatus` 不能直接调用默认 Footer 的私有统计状态，但可以在自己的 Footer render 中按上述公开字段重建，不需要读取 Pi 私有模块或修改 Pi 核心。
-
-## 接入时序与刷新要求
-
-### 当前已覆盖的刷新点
-
-`extensions/index.ts` 已在以下事件触发 Footer 重绘：
-
-- `model_select`
-- `thinking_level_select`
-- `turn_start` / `turn_end`
-- `tool_execution_start` / `tool_execution_end`
-- `pi-dusage/updated`
-- `pi-dfast/updated`
-- Git `onBranchChange()`
-
-### 若接入 session name
-
-增加：
-
-```ts
-pi.on("session_info_changed", requestRender);
-```
-
-render 时读取：
-
-```ts
-ctx.sessionManager.getSessionName()
-```
-
-### usage/cost/cache 接入
-
-增加：
-
-```ts
-pi.on("message_end", requestRender);
-```
-
-原因：assistant response 的最终 usage 只在 message 结束时稳定。Pi 默认 Footer 也是在 `message_end` 后失效并请求重绘。统计应遍历 `ctx.sessionManager.getEntries()`，与默认 Footer 的“跨 compaction 累计”语义保持一致。
-
-注意：Pi 的 `message_end` 扩展事件发生在 SessionManager 持久化之前，但 TUI 重绘是异步请求；不要在事件回调里缓存 `getEntries()` 的结果，直接在 Footer render 时读取。
-
-### 若接入 available provider count
-
-`footerData.getAvailableProviderCount()` 只有读取接口，没有变更订阅回调。当前 Footer 可在每次 render 直接读取；它反映 Pi 当前模型候选集合的 provider 数量，来源是 `getModelCandidates()` 的 provider 去重，不应文案化为“已配置”或“已登录” provider 数。
-
-## 本次落实方案
-
-### 已落实：新增 `session` 组件，默认关闭、按用户显式加入
-
-组件只显示 session name，空值时不渲染：
-
-```text
-◉ release-audit
-```
-
-字段来源明确、刷新事件公开、不会产生新的统计口径。session id/file 保留在设置或诊断场景，不进入默认状态栏。
-
-### 已落实：拆分 `tokens`、`cache`、`cost` 三个组件
-
-统计按输入输出 token、缓存、费用拆成独立组件，而不是继续塞进 `model` 或 `context`：
-
-```text
-输入 9M · 输出 265K · 合计 136M
-缓存读取 127M · 命中率 99.3%
-费用 $33.537
-```
-
-建议口径：
-
-- token/cost：累计 `getEntries()` 中所有 assistant message；
-- cache read/write/hit rate：按所有 assistant message 累计；没有 cache 数据时隐藏；
-- session usage 在 `session_start` 初始化，并在 `message_end` 增量更新；Footer render 只读取已聚合结果；
-- `message_end`、`session_start`、`session_shutdown` 时请求重绘；
-- 复用现有紧凑 token formatter 与 overflow 机制；`合计` 使用 Pi 公开的 `usage.totalTokens`。
-
-### P2：model 组件可选显示 provider count
-
-不新增独立组件。只有当 `getAvailableProviderCount() > 1` 时，沿用 Pi 默认 Footer 的 `(provider)` 逻辑；当前 `pi-dstatus` 已支持显式 provider 显示，因此不必再暴露 provider count 配置。
-
-### 暂不接入
-
-- `model.cost`：费率元数据，不是消费统计；
-- `session id` / `session file`：诊断价值大于持续可视化价值；
-- `maxTokens` / `api` / `reasoning` 元数据：对日常 Footer 决策帮助有限；
-- OAuth/subscription 标记：会把认证语义引入状态栏，且不属于当前项目的数据边界。
-
-## 兼容性与边界
-
-- 继续只使用 Pi 公开的 `ExtensionContext`、`ReadonlySessionManager`、`ReadonlyFooterDataProvider` 和 `ExtensionAPI` 事件。
-- 不读取 `auth.json`，不调用 provider API，不依赖默认 Footer 的私有实现。
-- `ctx.getContextUsage().tokens` / `percent` 在 compaction 后可能为 `null`；新增统计组件不得把未知误报为 0%。
-- `getEntries()` 是公开的 session 数据集合，但未来若 Pi 改变 `SessionEntry` 结构，应通过类型检查和行为测试捕获；不要复制默认 Footer 以外的私有算法。
-- 所有新增数据继续经过现有 `renderer`，预览与 Footer 共用同一渲染核心。
-
-## 当前决策建议
-
-本次实现已将 **session name** 与 **tokens/cache/cost** 作为可配置组件加入；`available provider count` 不单独加入，其他候选字段暂缓。
