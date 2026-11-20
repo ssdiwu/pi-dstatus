@@ -4,6 +4,7 @@
 
 - 本文件只记录 Footer 扩展长期数据、配置与交付边界，不复制当前默认布局或组件清单。
 - 修改前读取 `README.md`、`doc/README.md`、目标目录 README、`package.json`、实现和测试；当前组件与协议以代码和文档为准。
+- `doc/README.md` 只是文档导航入口，不承载规格；`doc/决策档案/` 收难逆转决策，`doc/references/` 收来源、验证与历史材料。
 
 ## 项目边界
 
