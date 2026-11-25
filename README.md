@@ -1,18 +1,20 @@
 # pi-dstatus
 
-个人的多逻辑行、可配置 Pi `Footer`（底栏）扩展，使用 Powerline 箭头色块风格。
+English | [中文](./README-zh.md)
 
-公开仓库：[github.com/ssdiwu/pi-dstatus](https://github.com/ssdiwu/pi-dstatus)
+A personal multi-logical-line, configurable Pi `Footer` (底栏) extension that uses Powerline arrow color blocks.
 
-## 安装
+Public repository: [github.com/ssdiwu/pi-dstatus](https://github.com/ssdiwu/pi-dstatus)
 
-安装 npm 当前发布版本；具体版本以 npm registry 与 `package.json` 的发布记录为准：
+## Installation
+
+Install the currently published npm version; the exact version is authoritative in the npm registry and the publish records of `package.json`:
 
 ```bash
 pi install npm:pi-dstatus
 ```
 
-开发版可以从仓库目录安装：
+A development checkout can be installed from the repository directory:
 
 ```bash
 git clone https://github.com/ssdiwu/pi-dstatus.git
@@ -20,45 +22,55 @@ cd pi-dstatus
 pi install .
 ```
 
-启用前请移除或停用 `@npm-ken/pi-bar`，因为两个扩展都会竞争自定义 Footer。
+Remove or disable `@npm-ken/pi-bar` before enabling this extension, because both compete for the custom footer.
 
-## 使用
+## Usage
 
-- `/dstatus`：打开设置面板。
-- 配置文件：`~/.pi/pi-dstatus/config.json`；Footer 在运行期间每分钟重读一次，外部修改会自动同步。
-- 默认一条逻辑行：目录/Git/模型/思考等级/Fast Mode（快速模式）/上下文/多个独立 `quota` 用量查询/工具或工作动画/所有当前非空扩展状态；可按需加入会话名、输入输出 token、缓存命中率、费用等独立组件。
-- 当前模型组件同时显示模型名与 provider，例如 `(openai-codex)gpt-5.6-luna`；在 `/dstatus` 选中模型组件后按 `Enter`，可切换 provider 显示；`context` 独立显示模型上下文窗口；每个 `quota` 组件订阅并显示一个 `pi-dusage` provider / 模型额度，分别渲染为独立 Powerline 色块。上下文示例：`87% ━━━━━━━━━━━━━━━━━─── · 324K/372K`。
+- `/dstatus`: opens the settings panel.
+- Configuration file: `~/.pi/pi-dstatus/config.json`; the footer re-reads it every minute while running, so external edits are picked up automatically.
+- The default is one logical line: directory / Git / model / thinking level / Fast Mode (快速模式) / context / multiple independent `quota` usage queries / tool or work animation / all current non-empty extension statuses. Optional independent components include session name, input/output tokens, cache hit rate and cost.
+- The current model component shows both the model name and the provider, for example `(openai-codex)gpt-5.6-luna`; selecting the model component in `/dstatus` and pressing `Enter` toggles provider display. `context` shows the model context window separately; each `quota` component subscribes to and displays the quota of one `pi-dusage` provider / model, rendered as an independent Powerline block. Context example: `87% ━━━━━━━━━━━━━━━━━━━━ · 324K/372K`.
 
-逻辑行可以新增、删除（包括最后一行）和排序，并编排行内组件；`session`、`tokens`、`cache`、`cost`、`fast`、`context`、每个 `quota` 和按 key 绑定的 `statuses` 都是独立组件。`session` 显示 Pi session name；`tokens` 显示输入、输出与合计 token；`cache` 显示累计缓存读写与累计命中率；`cost` 显示累计费用。安装 `pi-dfast` 后，`fast` 组件通过 `pi-dfast/updated` 公开快照显示当前会话的 `FAST` 或 `FAST · inactive`，关闭时隐藏。安装 `pi-dusage` 后，provider / 模型额度会从结构化快照动态发现；选中 `quota` 或 `statuses` 组件后按 `Enter` 进入设置，再选择绑定模型或状态。无 key 的 `statuses` 仍表示显示全部状态。逻辑行不是终端物理行：宽度不足时默认自动 `wrap`（换行）。全局默认和每行均支持 `wrap`、`collapse`、`hide`。
+Logical lines can be added, removed (including the last one) and reordered, and components can be arranged inside a line. `session`, `tokens`, `cache`, `cost`, `fast`, `context`, each `quota` and key-bound `statuses` are all independent components. `session` shows the Pi session name; `tokens` shows input, output and total tokens; `cache` shows cumulative cache reads/writes and the cumulative hit rate; `cost` shows cumulative cost. With `pi-dfast` installed, the `fast` component shows `FAST` or `FAST · inactive` for the current session from the public `pi-dfast/updated` snapshot, and is hidden when off. With `pi-dusage` installed, provider / model quotas are discovered dynamically from structured snapshots; after selecting a `quota` or `statuses` component, press `Enter` to enter settings and then choose the bound model or status. A `statuses` component without a key still means "show all statuses". A logical line is not a physical terminal line: when the width is insufficient, the default is `wrap` (换行). Both the global default and each line support `wrap`, `collapse` and `hide`.
 
-已有配置不会被自动改写布局；升级后可在 `/dstatus` 中新增“快速模式”组件。
+Existing configurations are never rewritten automatically; after upgrading you can add a "Fast Mode" component in `/dstatus`.
 
-通用扩展状态只读取 Pi 公开的 `setStatus(key, value)` 协议及 `getExtensionStatuses()`；`fast` 与 `quota` 组件分别消费版本化公开事件快照。未发布状态不显示，也不解析其他扩展私有状态。
+Generic extension statuses are read only through Pi's public `setStatus(key, value)` protocol and `getExtensionStatuses()`; the `fast` and `quota` components consume versioned public event snapshots. Unpublished statuses are not shown, and no other extension's private state is parsed.
 
-## 本地 TUI 验证
+## Manual TUI verification
 
-1. 先停用 `@npm-ken/pi-bar`。
-2. 执行 `pi install npm:pi-dstatus`，或在仓库目录用 `pi -e ./extensions/index.ts` 临时加载。
-3. 启动 `pi`，观察 Footer；输入 `/dstatus`。
-4. 用方向键选择行/组件，使用界面显示的快捷键新增、删除、排序、编辑溢出策略。
-5. 使用 `↑↓`/`←→` 选择并聚焦行或组件，按 `Enter` 进入当前对象设置；使用 `a`/`d` 增删逻辑行，`c` 修改组件，`n` 在当前组件右侧新增组件，`x` 删除组件，`[`/`]` 移动当前聚焦对象（组件在行首或行尾继续移动时跨行），`u`/`j` 移动逻辑行，`s` 保存，`Esc` 返回或取消。
-6. 输入 `/dstatus` 后确认预览、保存与取消行为；再调整终端宽度验证 wrap。
+1. Disable `@npm-ken/pi-bar` first.
+2. Run `pi install npm:pi-dstatus`, or load temporarily from the repository directory with `pi -e ./extensions/index.ts`.
+3. Start `pi` and watch the footer; type `/dstatus`.
+4. Use the arrow keys to select lines/components, and use the shortcuts shown in the interface to add, remove, reorder and edit the overflow strategy.
+5. Use `↑↓`/`←→` to select and focus a line or component, press `Enter` to enter the settings of the current object; use `a`/`d` to add/remove logical lines, `c` to modify a component, `n` to add a component to the right of the current one, `x` to delete a component, `[`/`]` to move the focused object (a component keeps crossing logical lines when it moves past the start or end of a line), `u`/`j` to move logical lines, `s` to save, and `Esc` to go back or cancel.
+6. After typing `/dstatus`, verify preview, save and cancel behavior; then resize the terminal to verify wrapping.
 
-## 目录导航
+## Directory navigation
 
-- `extensions/`：Pi Extension（扩展）入口，注册 `/dstatus` 并安装自定义 Footer。
-- `src/`：配置、渲染、设置状态模型、设置 UI 与 session usage 聚合。
-- `test/`：配置、渲染、设置交互与 usage 聚合的行为测试。
-- `doc/`：文档入口、决策档案与来源材料（`doc/决策档案/`、`doc/references/`）。
+- `extensions/`: the Pi extension (扩展) entry point; it registers `/dstatus` and installs the custom footer.
+- `src/`: configuration, rendering, settings state model, settings UI and session usage aggregation.
+- `test/`: behavior tests for configuration, rendering, settings interaction and usage aggregation.
+- `doc/`: document entry point, decision records and source material (`doc/决策档案/`, `doc/references/`).
 
-## 开发
+## Development
 
 ```bash
+git clone https://github.com/ssdiwu/pi-dstatus.git
+cd pi-dstatus
 npm install
 npm run typecheck
 npm test
 ```
 
-## 范围
+## Contributing
 
-本项目不修改 Pi 核心与旧 `pi-bar`，不实现项目级覆盖或 Claude 专属用量指标。
+- Read [`AGENTS.md`](AGENTS.md) first, then [`doc/README.md`](doc/README.md) for the document map.
+- Behavior changes update the root `README.md` first, then the code and tests, then both README versions (`README.md` in English and `README-zh.md` in Chinese) — the two versions must stay semantically in sync.
+- Configuration schema, public protocol and component behavior changes must land with matching behavior tests; existing user configurations must stay compatible.
+- User-perceivable changes go to the changelog: daily Chinese entries are kept in [`CHANGELOG-zh.md`](CHANGELOG-zh.md) in this repository, and each released version mirrors the same user-perceivable facts into the English [`CHANGELOG.md`](CHANGELOG.md); both changelogs and both READMEs ship in the npm package.
+- One commit does one thing and follows Conventional Commits (约定式提交). Do not commit, push, tag or publish without explicit authorization, and do not modify the user's global configuration.
+
+## Scope
+
+This project does not modify Pi core or the old `pi-bar`, and implements no project-level override or Claude-specific usage metrics.

@@ -1,65 +1,70 @@
 # Changelog
 
-本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的基本格式；版本以 Git tag（Git 标签）为准。
+This project follows the basic format of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). For tagged releases, use the version from the Git tag. The tagged release is maintained by the release owner in this English `CHANGELOG.md`; daily user-perceivable changes are recorded in the Chinese `CHANGELOG-zh.md` in this repository. Both files contain user-perceivable facts only and ship in the npm package.
+
+For new releases, use headings in the format `## [x.y.z] - YYYY-MM-DD`. When an entry can be linked unambiguously to a GitHub issue, append `(#xx)`. Historical entries keep their original heading format.
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-11-25
+
 ### Added
 
-- 新默认 Footer 布局加入 `xai` quota 组件；既有用户配置不自动改写，可在 `/dstatus` 中手动绑定动态发现的 xAI provider。
+- Added an `xai` quota component to the new default footer layout; existing user configurations are not rewritten automatically, and the dynamically discovered xAI provider can be bound manually in `/dstatus`.
 
 ### Changed
 
-- quota 的 `5h` 窗口范围在 provider 没有短窗口时，改为显示第一个可用窗口，避免仅有 week 的 xAI 配额被隐藏。
+- Supports Pi 1.6.0.
+- For quota `5h` window ranges, when the provider has no short window, the first available window is now shown instead, so xAI quotas that only have a week window are not hidden.
 
 ## [0.0.3] - 2026-07-16
 
 ### Added
 
-- 新增独立 `fast` Footer 组件，通过 `pi-dfast/updated` 公开快照显示 `FAST` 或 `FAST · inactive`，关闭时隐藏。
+- Added a standalone `fast` footer component that shows `FAST` or `FAST · inactive` from the `pi-dfast/updated` public snapshot and hides itself when off.
 
 ### Changed
 
-- `/dstatus` 新增组件默认插入当前组件右侧；组件在行首或行尾继续移动时可跨逻辑行，并保留空行。
+- Components added in `/dstatus` are inserted to the right of the current component by default; when a component keeps moving at the start or end of a line it can cross logical lines, and blank lines are preserved.
 
 ### Fixed
 
-- `/dstatus` 现在可以删除最后一个逻辑行；运行中的 Footer 每分钟自动重读配置，同步外部排布修改。
+- `/dstatus` can now delete the last logical line; the live footer re-reads the configuration every minute to pick up external layout changes.
 
 ## [0.0.2] - 2026-07-14
 
 ### Added
 
-- 新增可配置的会话名、输入输出 token、缓存命中率与费用组件，统计口径对齐 Pi 默认 Footer。
-- 订阅 `pi-dusage/updated` 结构化快照，动态发现 provider / 模型；上下文与每个独立 quota 组件分开渲染，`StatusComponent.key` 绑定具体用量查询。
-- 设置面板将行级与组件级配置统一收进 Enter 打开的上下文设置面板。
+- Added configurable components for session name, input/output tokens, cache hit rate, and cost, with accounting aligned to Pi's default footer.
+- Subscribes to `pi-dusage/updated` structured snapshots for dynamic provider/model discovery; context and each individual quota component render separately, with `StatusComponent.key` bound to a specific usage query.
+- The settings panel consolidates row-level and component-level configuration into a context settings panel opened with Enter.
 
 ### Changed
 
-- 模型组件支持显示 provider，并可在 `/dstatus` 中切换。
-- quota 状态采用紧凑的 10 格进度条、token 单位和 provider 短标签，减少 Footer 占用。
-- quota 与 statuses 支持独立绑定，设置面板实时同步运行中的公开状态和额度发现结果。
+- The model component can display the provider and be toggled in `/dstatus`.
+- Quota status uses a compact 10-cell progress bar, token units, and short provider labels to reduce footer footprint.
+- Quota and statuses support independent bindings, and the settings panel syncs live public state and quota discovery results in real time.
 
 ### Fixed
 
-- 不再把 `pi-dusage` 的长文本 fallback 当作唯一额度展示；有结构化数据时清除重复状态文本。
-- 未绑定 provider / 模型的 quota 组件不再渲染全部额度，避免新增组件产生重复长文本。
-- `statuses` 支持通过 key 独立显示运行时发现的 `mcp`、`dgoal`、`dteam` 等状态；quota provider 文案不再显示 `left`。
-- 打开 `/dstatus` 设置时主动同步 Footer 状态，避免 picker 显示“暂无可用 status”。
-- 修复未知 context usage 被误显示为 `0%`、设置子面板误响应父级快捷键，以及配置 key 进入 TUI 前未清洗的问题。
-- 缓存命中率改为按当前 session 累计统计，避免与累计缓存 token 使用不同口径。
+- No longer treats the `pi-dusage` long-text fallback as the only quota display; duplicate status text is cleared when structured data is available.
+- Quota components without a bound provider/model no longer render every quota, avoiding duplicate long text from newly added components.
+- `statuses` supports displaying runtime-discovered states such as `mcp`, `dgoal`, and `dteam` independently by key; quota provider text no longer shows `left`.
+- Syncs footer state proactively when opening `/dstatus` settings, so the picker does not show "no available status".
+- Fixed unknown context usage being incorrectly shown as `0%`, settings sub-panels responding to parent shortcuts, and configuration keys not being sanitized before entering the TUI.
+- Cache hit rate is now accumulated per current session, avoiding a different accounting basis from cumulative cached tokens.
 
 ## [0.0.1] - 2026-07-14
 
 ### Added
 
-- 多逻辑行 Powerline 状态栏与 `/dstatus` 设置入口。
-- 全局配置及按逻辑行覆盖的 `wrap`、`collapse`、`hide` 溢出策略。
-- 基于 Pi 公开扩展状态协议的自动状态显示。
-- 可复用的 `quota` 配额窗口组件，支持上下文用量百分比与单线进度显示。
+- Multi-logical-line Powerline status bar and a `/dstatus` settings entry point.
+- Global configuration and per-logical-line overrides for the `wrap`, `collapse`, and `hide` overflow strategies.
+- Automatic status display based on Pi's public extension state protocol.
+- A reusable `quota` window component supporting context usage percentage and single-line progress display.
 
 ### Changed
 
-- 默认配置收敛为一条包含全部组件的逻辑行，窄终端自动换行。
-- 设置面板区分修改当前组件与新增组件，并显示明确的当前选择状态。
-- 模型组件显示 provider 前缀与模型名，并可在设置中切换 provider 显示；上下文组件显示百分比优先、10 格紧凑微型进度条与紧凑 token 用量，例如 `87% ━━━━━━━━── · 324K/372K`。
+- The default configuration is now a single logical line containing all components, with automatic wrapping on narrow terminals.
+- The settings panel distinguishes editing the current component from adding a new one and shows a clear current-selection state.
+- The model component shows a provider prefix and model name, with provider display toggleable in settings; the context component prioritizes the percentage, a compact 10-cell micro progress bar, and compact token usage, e.g. `87% ━━━━━━━━── · 324K/372K`.

@@ -3,7 +3,7 @@
 - 决策日期：2026-07-15
 - 状态：已落实
 - 来源材料：`../references/pi-footer-public-data-audit.md`（Pi 公开数据源审查）
-- 适用范围：`pi-dstatus` 展示哪些 Pi 数据，不涉及渲染与布局机制（见 `../../README.md`「使用」与 `../../AGENTS.md`「项目边界」）
+- 适用范围：`pi-dstatus` 展示哪些 Pi 数据，不涉及渲染与布局机制（见 `../../README.md`「Usage」/ `../../README-zh.md`「使用」与 `../../AGENTS.md`「项目边界」）
 
 ## 背景
 

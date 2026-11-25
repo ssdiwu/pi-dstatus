@@ -1,6 +1,6 @@
 {
   "name": "pi-dstatus",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Configurable multi-line Powerline status bar extension for Pi",
   "repository": { "type": "git", "url": "https://github.com/ssdiwu/pi-dstatus.git" },
   "homepage": "https://github.com/ssdiwu/pi-dstatus#readme",
@@ -12,9 +12,11 @@
     "extensions",
     "src",
     "README.md",
+    "README-zh.md",
     "AGENTS.md",
     "doc",
     "CHANGELOG.md",
+    "CHANGELOG-zh.md",
     "LICENSE"
   ],
   "scripts": {
@@ -45,8 +47,8 @@
     "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.80.6",
-    "@earendil-works/pi-tui": "^0.80.6",
+    "@earendil-works/pi-coding-agent": "1.6.0",
+    "@earendil-works/pi-tui": "1.6.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"

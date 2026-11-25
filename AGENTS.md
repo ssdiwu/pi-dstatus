@@ -3,7 +3,7 @@
 ## 文件职责与阅读顺序
 
 - 本文件只记录 Footer 扩展长期数据、配置与交付边界，不复制当前默认布局或组件清单。
-- 修改前读取 `README.md`、`doc/README.md`、目标目录 README、`package.json`、实现和测试；当前组件与协议以代码和文档为准。
+- 修改前读取 `README.md`（英文默认版）、`README-zh.md`（完整中文版）、`doc/README.md`、目标目录 README、`package.json`、实现和测试；当前组件与协议以代码和文档为准。
 - `doc/README.md` 只是文档导航入口，不承载规格；`doc/决策档案/` 收难逆转决策，`doc/references/` 收来源、验证与历史材料。
 
 ## 项目边界
@@ -24,6 +24,15 @@ npm test
 ```
 
 Footer、设置或键盘交互变化还需从当前仓库加载扩展，打开 `/dstatus`，验证预览、保存、取消、窄终端与目标组件；未做 TUI 实测时明确说明。
+
+## 双语文档与变更日志
+
+- `README.md` 是英文默认版，`README-zh.md` 是完整中文版；两版顶部互链，组件语义、配置、交互与贡献入口必须语义一致。
+- 配置 schema、公开协议、组件行为或用户交互变化时，同一提交内同步两版 README。
+- 两份变更日志都在本 GitHub 仓库维护：`CHANGELOG.md` 是英文发布记录，`CHANGELOG-zh.md` 是中文日常记录；两份只写用户可感知事实，不写验证日志、内部过程或纯文档整理。
+- 日常用中文把已完成的用户可感知变化写入 `CHANGELOG-zh.md`；准备发布（release）时按版本把同一版本的用户可感知条目同步进英文 `CHANGELOG.md`，两份都保留该版本记录，并核对版本、日期与 issue 链接。
+- `README.md` 是英文默认版（npm 默认展示），`README-zh.md` 是同包附带的中文版；两份 README 与两份 changelog 都随 npm 包发布。发布前用 `npm pack --dry-run --ignore-scripts --json` 核对清单包含 `README.md`、`README-zh.md`、`CHANGELOG.md`、`CHANGELOG-zh.md`。
+- `doc/`、`AGENTS.md` 等内部文件无需全译，保留中文历史文档即可。
 
 ## 文档与 Git
 
